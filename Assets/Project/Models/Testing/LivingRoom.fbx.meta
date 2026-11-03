@@ -3,7 +3,42 @@ guid: b66042f91740d3047b89c3597a4c11b4
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: WoodenFloor_02_basecolor
+    second: {fileID: 2800000, guid: 654bf84ab6504e84d833d2903d4cfb73, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: WoodenFloor_02_normalogl
+    second: {fileID: 2800000, guid: fdecc4255d20a3c479dc69f277adb7a2, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: WoodenFloor_02_roughness
+    second: {fileID: 2800000, guid: 863f4038772f0ad46ad9f94e79c27ad2, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: wallpaper_01_color
+    second: {fileID: 2800000, guid: 02ba90f9a08b8ab4a9355bd30054a2e6, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: wallpaper_01_roughness
+    second: {fileID: 2800000, guid: 585391a7d6e81034bbddacfe9adb7119, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: wallpaper_10_color
+    second: {fileID: 2800000, guid: 248b1d3e62da97c47b14e96c1f856e7f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: wallpaper_10_roughness
+    second: {fileID: 2800000, guid: f4d0ac30997b56e47a215011ef4d896d, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0
