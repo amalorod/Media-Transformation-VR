@@ -1,0 +1,149 @@
+{
+    "version": 1,
+    "name": "VR Input",
+    "maps": [
+        {
+            "name": "Right Hand",
+            "id": "943f31e9-3687-4398-9225-e3f46b725ae4",
+            "actions": [
+                {
+                    "name": "Grip",
+                    "type": "Value",
+                    "id": "a69cab13-1ea7-4b72-a6d1-eba957e89404",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true,
+                    "priority": 0
+                },
+                {
+                    "name": "Trigger",
+                    "type": "Value",
+                    "id": "02c76e0c-cca7-4a7e-802a-f467e8c33658",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true,
+                    "priority": 0
+                },
+                {
+                    "name": "MiddleFinger",
+                    "type": "Button",
+                    "id": "af673ac2-47b4-4f7a-9d73-03afa0ab2bdf",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "10c711c7-d703-4d28-b4cb-a99edbe00924",
+                    "path": "<XRController>{RightHand}/grip",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grip",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6b94223d-4c7e-4f38-bb6f-765cdd68c667",
+                    "path": "<XRController>{RightHand}/trigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Trigger",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b3afebed-9bb6-4d3b-aa90-ac2e5807b14f",
+                    "path": "<XRController>{RightHand}/primaryButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MiddleFinger",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Left Hand",
+            "id": "14278bd3-7077-4372-becf-507bff517ec0",
+            "actions": [
+                {
+                    "name": "Grip",
+                    "type": "Value",
+                    "id": "7f418cdd-81d4-4be6-8eeb-c740353573ad",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true,
+                    "priority": 0
+                },
+                {
+                    "name": "Trigger",
+                    "type": "Value",
+                    "id": "2427e9ae-72a5-43ff-8be1-1827aff277fc",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true,
+                    "priority": 0
+                },
+                {
+                    "name": "MiddleFinger",
+                    "type": "Button",
+                    "id": "94d030a1-51d2-4e0b-86bd-40a081d4271c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "39e3c700-e222-421b-9572-2f73ef2ef381",
+                    "path": "<XRController>{LeftHand}/grip",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grip",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d1d54053-438c-4840-bf5e-a10386032e4b",
+                    "path": "<XRController>{LeftHand}/trigger",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Trigger",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0d56ec17-6952-4ddb-b57a-204675f48e42",
+                    "path": "<XRController>{LeftHand}/primaryButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MiddleFinger",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
