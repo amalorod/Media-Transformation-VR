@@ -216,12 +216,9 @@ public class DollhouseRoom : MonoBehaviour
 
         worldRoom.localPosition = worldPosition;
 
-        // Rotation der Miniatur übernehmen
-        Vector3 miniRotation = transform.localEulerAngles;
-
         worldRoom.localRotation = Quaternion.Euler(
             0f,
-            miniRotation.y,
+            transform.localEulerAngles.y,
             0f
         );
     }
