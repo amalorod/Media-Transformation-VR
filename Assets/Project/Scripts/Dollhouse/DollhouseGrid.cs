@@ -116,4 +116,40 @@ public class DollhouseGrid : MonoBehaviour
             }
         }
     }
+
+
+    public bool FindNearestValidPosition(
+    DollhouseRoom room,
+    int requestedX,
+    int requestedZ,
+    out int validX,
+    out int validZ)
+    {
+        float bestDistance = float.MaxValue;
+
+        validX = -1;
+        validZ = -1;
+
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int z = 0; z < gridDepth; z++)
+            {
+                if (!CanPlaceRoom(room, x, z))
+                    continue;
+
+                float distance = Vector2.SqrMagnitude(
+                    new Vector2(x - requestedX, z - requestedZ)
+                );
+
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    validX = x;
+                    validZ = z;
+                }
+            }
+        }
+
+        return validX >= 0 && validZ >= 0;
+    }
 }

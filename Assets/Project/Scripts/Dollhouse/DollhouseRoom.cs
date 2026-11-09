@@ -14,23 +14,33 @@ public class DollhouseRoom : MonoBehaviour
     [SerializeField] private int width = 1;
     [SerializeField] private int depth = 1;
 
-    public int Width => IsRotated ? depth : width;
-    public int Depth => IsRotated ? width : depth;
+    [Header("Magnetic Snap")]
+    [SerializeField] private float snapDistance = 0.04f;
 
-    public bool IsRotated { get; private set; }
+    [Header("World Synchronization")]
+    [SerializeField] private Transform worldRoom;
+    [SerializeField] private float worldScaleFactor = 20f;
+
+    private Collider roomCollider;
+
+
+    public int Width => width;
+    public int Depth => depth;
 
     private Vector3 lastValidPosition;
     private bool hasValidPosition;
 
     private void Awake()
     {
+        roomCollider = GetComponent<Collider>();
+
         if (grabInteractable == null)
         {
             grabInteractable = GetComponent<XRGrabInteractable>();
         }
     }
 
-    
+
 
     private void OnEnable()
     {
@@ -44,7 +54,104 @@ public class DollhouseRoom : MonoBehaviour
 
     private void OnReleased(SelectExitEventArgs args)
     {
-        TryPlaceOnGrid();
+        if (!TryMagneticSnap())
+        {
+            TryPlaceOnGrid();
+        }
+
+        UpdateWorldRoom();
+    }
+
+    private bool TryMagneticSnap()
+    {
+        DollhouseRoom[] rooms = FindObjectsByType<DollhouseRoom>(
+            FindObjectsSortMode.None
+        );
+
+        DollhouseRoom nearestRoom = null;
+        float nearestDistance = float.MaxValue;
+
+        foreach (DollhouseRoom other in rooms)
+        {
+            if (other == this)
+                continue;
+
+            Collider otherCollider = other.GetComponent<Collider>();
+
+            if (otherCollider == null)
+                continue;
+
+            Vector3 closestPoint =
+                otherCollider.ClosestPoint(transform.position);
+
+            float distance = Vector3.Distance(
+                transform.position,
+                closestPoint
+            );
+
+            if (distance < nearestDistance)
+            {
+                nearestDistance = distance;
+                nearestRoom = other;
+            }
+        }
+
+        if (nearestRoom != null && nearestDistance <= snapDistance)
+        {
+            SnapToRoom(nearestRoom);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void SnapToRoom(DollhouseRoom target)
+    {
+        Collider targetCollider = target.GetComponent<Collider>();
+
+        if (roomCollider == null || targetCollider == null)
+            return;
+
+        Bounds myBounds = roomCollider.bounds;
+        Bounds targetBounds = targetCollider.bounds;
+
+        Vector3 direction =
+            transform.position - target.transform.position;
+
+        Vector3 newPosition = transform.position;
+
+        if (Mathf.Abs(direction.x) > Mathf.Abs(direction.z))
+        {
+            if (direction.x > 0f)
+            {
+                newPosition.x =
+                    targetBounds.max.x +
+                    myBounds.extents.x;
+            }
+            else
+            {
+                newPosition.x =
+                    targetBounds.min.x -
+                    myBounds.extents.x;
+            }
+        }
+        else
+        {
+            if (direction.z > 0f)
+            {
+                newPosition.z =
+                    targetBounds.max.z +
+                    myBounds.extents.z;
+            }
+            else
+            {
+                newPosition.z =
+                    targetBounds.min.z -
+                    myBounds.extents.z;
+            }
+        }
+
+        transform.position = newPosition;
     }
 
     private void TryPlaceOnGrid()
@@ -90,23 +197,33 @@ public class DollhouseRoom : MonoBehaviour
 
             grid.OccupyRoom(this, previousX, previousZ);
         }
-
-
-
     }
 
-    [ContextMenu("Rotate 90 Degrees")]
-    public void Rotate90Degrees()
+
+    private void UpdateWorldRoom()
     {
-        IsRotated = !IsRotated;
-        transform.Rotate(0f, 90f, 0f);
+        if (worldRoom == null || grid == null)
+            return;
 
-        // Grid-Logik nur während des laufenden Spiels
-        if (Application.isPlaying)
-        {
-            TryPlaceOnGrid();
-        }
+        Vector3 localMiniPosition =
+            grid.transform.InverseTransformPoint(transform.position);
+
+        Vector3 worldPosition = new Vector3(
+            localMiniPosition.x * worldScaleFactor,
+            0f,
+            localMiniPosition.z * worldScaleFactor
+        );
+
+        worldRoom.localPosition = worldPosition;
+
+        // Rotation der Miniatur übernehmen
+        Vector3 miniRotation = transform.localEulerAngles;
+
+        worldRoom.localRotation = Quaternion.Euler(
+            0f,
+            miniRotation.y,
+            0f
+        );
     }
-
 
 }
