@@ -54,15 +54,18 @@ public class DollhouseRoom : MonoBehaviour
 
     private void OnReleased(SelectExitEventArgs args)
     {
-        if (!TryMagneticSnap())
-        {
-            TryPlaceOnGrid();
-        }
+        // 1. Immer zuerst die funktionierende Grid-Platzierung
+        TryPlaceOnGrid();
 
+        // 2. Danach optional magnetisch an einen nahen Raum andocken
+        TryMagneticSnap();
+
+        // 3. Erst die finale Position auf die große Welt übertragen
         UpdateWorldRoom();
     }
 
-    private bool TryMagneticSnap()
+
+    private void TryMagneticSnap()
     {
         DollhouseRoom[] rooms = FindObjectsByType<DollhouseRoom>(
             FindObjectsSortMode.None
@@ -81,12 +84,15 @@ public class DollhouseRoom : MonoBehaviour
             if (otherCollider == null)
                 continue;
 
-            Vector3 closestPoint =
-                otherCollider.ClosestPoint(transform.position);
+            Vector3 pointOnThis =
+             roomCollider.ClosestPoint(otherCollider.bounds.center);
+
+            Vector3 pointOnOther =
+                otherCollider.ClosestPoint(pointOnThis);
 
             float distance = Vector3.Distance(
-                transform.position,
-                closestPoint
+                pointOnThis,
+                pointOnOther
             );
 
             if (distance < nearestDistance)
@@ -99,10 +105,7 @@ public class DollhouseRoom : MonoBehaviour
         if (nearestRoom != null && nearestDistance <= snapDistance)
         {
             SnapToRoom(nearestRoom);
-            return true;
         }
-
-        return false;
     }
 
     private void SnapToRoom(DollhouseRoom target)
