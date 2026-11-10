@@ -21,6 +21,9 @@ public class DollhouseRoom : MonoBehaviour
     [SerializeField] private Transform worldRoom;
     [SerializeField] private float worldScaleFactor = 20f;
 
+    [Header("Door Connections")]
+    [SerializeField] private DoorSocket[] doorSockets;
+
     private Collider roomCollider;
 
 
@@ -52,6 +55,44 @@ public class DollhouseRoom : MonoBehaviour
         grabInteractable.selectExited.RemoveListener(OnReleased);
     }
 
+
+    private void CheckDoorConnections()
+    {
+        Debug.Log($"CHECK CONNECTIONS: {name}");
+
+        DoorSocket[] allSockets =
+            FindObjectsByType<DoorSocket>(
+                FindObjectsSortMode.None
+            );
+
+        Debug.Log($"Gefundene DoorSockets: {allSockets.Length}");
+
+        foreach (DoorSocket ownSocket in doorSockets)
+        {
+            ownSocket.SetConnected(false);
+
+            foreach (DoorSocket otherSocket in allSockets)
+            {
+                if (otherSocket == ownSocket)
+                    continue;
+
+                if (otherSocket.transform.IsChildOf(transform))
+                    continue;
+
+                if (ownSocket.IsNear(otherSocket))
+                {
+                    ownSocket.SetConnected(true);
+                    otherSocket.SetConnected(true);
+
+                    Debug.Log(
+                        $"CONNECTED: {ownSocket.name} <-> {otherSocket.name}"
+                    );
+
+                    break;
+                }
+            }
+        }
+    }
     private void OnReleased(SelectExitEventArgs args)
     {
         // 1. Immer zuerst die funktionierende Grid-Platzierung
@@ -62,6 +103,8 @@ public class DollhouseRoom : MonoBehaviour
 
         // 3. Erst die finale Position auf die große Welt übertragen
         UpdateWorldRoom();
+
+        CheckDoorConnections();
     }
 
 
