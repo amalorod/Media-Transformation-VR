@@ -19,6 +19,7 @@ public class DollhouseRoom : MonoBehaviour
 
     [Header("World Synchronization")]
     [SerializeField] private Transform worldRoom;
+    [SerializeField] private Transform worldGridOrigin;
     [SerializeField] private float worldScaleFactor = 20f;
 
     [Header("Door Connections")]
@@ -95,15 +96,9 @@ public class DollhouseRoom : MonoBehaviour
     }
     private void OnReleased(SelectExitEventArgs args)
     {
-        // 1. Immer zuerst die funktionierende Grid-Platzierung
         TryPlaceOnGrid();
-
-        // 2. Danach optional magnetisch an einen nahen Raum andocken
         TryMagneticSnap();
-
-        // 3. Erst die finale Position auf die große Welt übertragen
         UpdateWorldRoom();
-
         CheckDoorConnections();
     }
 
@@ -248,25 +243,30 @@ public class DollhouseRoom : MonoBehaviour
 
     private void UpdateWorldRoom()
     {
-        if (worldRoom == null || grid == null)
+        if (worldRoom == null || grid == null || worldGridOrigin == null)
             return;
 
+        // Position relativ zum kleinen Grid
         Vector3 localMiniPosition =
             grid.transform.InverseTransformPoint(transform.position);
 
-        Vector3 worldPosition = new Vector3(
+        // Skalierung auf die echte Welt übertragen
+        Vector3 scaledPosition = new Vector3(
             localMiniPosition.x * worldScaleFactor,
             0f,
             localMiniPosition.z * worldScaleFactor
         );
 
-        worldRoom.localPosition = worldPosition;
+        // Position relativ zum Referenzpunkt der echten Welt berechnen
+        worldRoom.position =
+            worldGridOrigin.TransformPoint(scaledPosition);
 
-        worldRoom.localRotation = Quaternion.Euler(
-            0f,
-            transform.localEulerAngles.y,
-            0f
-        );
+        // Rotation relativ zum kleinen Grid übernehmen
+        Quaternion relativeRotation =
+            Quaternion.Inverse(grid.transform.rotation) * transform.rotation;
+
+        worldRoom.rotation =
+            worldGridOrigin.rotation * relativeRotation;
     }
 
 }
