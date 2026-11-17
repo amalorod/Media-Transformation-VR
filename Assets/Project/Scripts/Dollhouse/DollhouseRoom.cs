@@ -61,6 +61,27 @@ public class DollhouseRoom : MonoBehaviour
         grabInteractable.selectExited.RemoveListener(OnReleased);
     }
 
+    private void LateUpdate()
+    {
+        if (grabInteractable == null || !grabInteractable.isSelected)
+            return;
+
+        Quaternion boardRotation = grid != null
+            ? grid.transform.rotation
+            : Quaternion.identity;
+
+        Quaternion boardLocalRotation =
+            Quaternion.Inverse(boardRotation) * transform.rotation;
+
+        Vector3 localEuler = boardLocalRotation.eulerAngles;
+
+        transform.rotation = boardRotation * Quaternion.Euler(
+            0f,
+            localEuler.y,
+            0f
+        );
+    }
+
 
     private void CheckDoorConnections()
     {
@@ -106,12 +127,18 @@ public class DollhouseRoom : MonoBehaviour
     {
         SnapRotation();
 
-        if (IsInsideGrid())
+        bool insideGrid = IsInsideGrid();
+
+        if (!insideGrid)
         {
-            TryPlaceOnGrid();
+            TryMagneticSnap();
+            CheckDoorConnections();
+            return;
         }
 
+        TryPlaceOnGrid();
         TryMagneticSnap();
+        RefreshGridOccupancy();
         UpdateWorldRoom();
         CheckDoorConnections();
     }
@@ -141,9 +168,17 @@ public class DollhouseRoom : MonoBehaviour
 
     private void SnapRotation()
     {
-        float snappedY = Mathf.Round(transform.eulerAngles.y / 90f) * 90f;
+        Quaternion boardRotation = grid != null
+            ? grid.transform.rotation
+            : Quaternion.identity;
 
-        transform.rotation = Quaternion.Euler(
+        Quaternion boardLocalRotation =
+            Quaternion.Inverse(boardRotation) * transform.rotation;
+
+        float snappedY =
+            Mathf.Round(boardLocalRotation.eulerAngles.y / 90f) * 90f;
+
+        transform.rotation = boardRotation * Quaternion.Euler(
             0f,
             snappedY,
             0f
@@ -223,11 +258,41 @@ public class DollhouseRoom : MonoBehaviour
         DoorSocket ownSocket,
         DoorSocket targetSocket)
     {
-        Vector3 offset =
+        Vector3 worldOffset =
             targetSocket.transform.position -
             ownSocket.transform.position;
 
-        transform.position += offset;
+        Quaternion boardRotation = grid != null
+            ? grid.transform.rotation
+            : Quaternion.identity;
+
+        Vector3 localOffset =
+            Quaternion.Inverse(boardRotation) * worldOffset;
+
+        localOffset.y = 0f;
+
+        transform.position += boardRotation * localOffset;
+    }
+
+    private void RefreshGridOccupancy()
+    {
+        if (grid == null)
+            return;
+
+        Vector3 localPosition =
+            grid.transform.InverseTransformPoint(transform.position);
+
+        int startX = Mathf.RoundToInt(localPosition.x / grid.cellSize);
+        int startZ = Mathf.RoundToInt(localPosition.z / grid.cellSize);
+
+        grid.ClearRoom(this);
+
+        if (grid.CanPlaceRoom(this, startX, startZ))
+        {
+            grid.OccupyRoom(this, startX, startZ);
+            lastValidPosition = transform.position;
+            hasValidPosition = true;
+        }
     }
 
     private void TryPlaceOnGrid()
