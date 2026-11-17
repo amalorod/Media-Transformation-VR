@@ -3,7 +3,7 @@ using UnityEngine;
 public class DollhouseGrid : MonoBehaviour
 {
     [Header("Grid Einstellungen")]
-    public float cellSize = 0.1f;
+    public float cellSize = 0.05f;
     public int gridWidth = 6;
     public int gridDepth = 6;
 

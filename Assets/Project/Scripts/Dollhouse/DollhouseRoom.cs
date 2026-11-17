@@ -42,6 +42,11 @@ public class DollhouseRoom : MonoBehaviour
         {
             grabInteractable = GetComponent<XRGrabInteractable>();
         }
+
+        if (doorSockets == null || doorSockets.Length == 0)
+        {
+            doorSockets = GetComponentsInChildren<DoorSocket>();
+        }
     }
 
 
@@ -59,6 +64,9 @@ public class DollhouseRoom : MonoBehaviour
 
     private void CheckDoorConnections()
     {
+        if (doorSockets == null || doorSockets.Length == 0)
+            return;
+
         Debug.Log($"CHECK CONNECTIONS: {name}");
 
         DoorSocket[] allSockets =
@@ -96,103 +104,130 @@ public class DollhouseRoom : MonoBehaviour
     }
     private void OnReleased(SelectExitEventArgs args)
     {
-        TryPlaceOnGrid();
+        SnapRotation();
+
+        if (IsInsideGrid())
+        {
+            TryPlaceOnGrid();
+        }
+
         TryMagneticSnap();
         UpdateWorldRoom();
         CheckDoorConnections();
     }
 
+    private bool IsInsideGrid()
+    {
+        if (grid == null)
+            return false;
+
+        Vector3 localPosition =
+            grid.transform.InverseTransformPoint(transform.position);
+
+        bool rotatedSideways =
+            Mathf.RoundToInt(transform.eulerAngles.y / 90f) % 2 != 0;
+
+        int occupiedWidth = rotatedSideways ? depth : width;
+        int occupiedDepth = rotatedSideways ? width : depth;
+
+        float maxX = (grid.gridWidth - occupiedWidth) * grid.cellSize;
+        float maxZ = (grid.gridDepth - occupiedDepth) * grid.cellSize;
+
+        return localPosition.x >= 0f &&
+            localPosition.x <= maxX &&
+            localPosition.z >= 0f &&
+            localPosition.z <= maxZ;
+    }
+
+    private void SnapRotation()
+    {
+        float snappedY = Mathf.Round(transform.eulerAngles.y / 90f) * 90f;
+
+        transform.rotation = Quaternion.Euler(
+            0f,
+            snappedY,
+            0f
+        );
+    }
+
 
     private void TryMagneticSnap()
     {
-        DollhouseRoom[] rooms = FindObjectsByType<DollhouseRoom>(
+        if (doorSockets == null || doorSockets.Length == 0)
+            return;
+
+        DoorSocket[] allSockets = FindObjectsByType<DoorSocket>(
             FindObjectsSortMode.None
         );
 
-        DollhouseRoom nearestRoom = null;
+        DoorSocket nearestOwnSocket = null;
+        DoorSocket nearestTargetSocket = null;
         float nearestDistance = float.MaxValue;
 
-        foreach (DollhouseRoom other in rooms)
+        foreach (DoorSocket ownSocket in doorSockets)
         {
-            if (other == this)
+            if (!IsEastOrWestSocket(ownSocket))
                 continue;
 
-            Collider otherCollider = other.GetComponent<Collider>();
-
-            if (otherCollider == null)
-                continue;
-
-            Vector3 pointOnThis =
-             roomCollider.ClosestPoint(otherCollider.bounds.center);
-
-            Vector3 pointOnOther =
-                otherCollider.ClosestPoint(pointOnThis);
-
-            float distance = Vector3.Distance(
-                pointOnThis,
-                pointOnOther
-            );
-
-            if (distance < nearestDistance)
+            foreach (DoorSocket otherSocket in allSockets)
             {
-                nearestDistance = distance;
-                nearestRoom = other;
+                if (otherSocket == ownSocket ||
+                    otherSocket.transform.IsChildOf(transform) ||
+                    !AreCompatibleSockets(ownSocket, otherSocket))
+                {
+                    continue;
+                }
+
+                float distance = Vector3.Distance(
+                    ownSocket.transform.position,
+                    otherSocket.transform.position
+                );
+
+                if (distance < nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearestOwnSocket = ownSocket;
+                    nearestTargetSocket = otherSocket;
+                }
             }
         }
 
-        if (nearestRoom != null && nearestDistance <= snapDistance)
+        if (nearestOwnSocket != null &&
+            nearestTargetSocket != null &&
+            nearestDistance <= snapDistance)
         {
-            SnapToRoom(nearestRoom);
+            SnapToDoorSocket(nearestOwnSocket, nearestTargetSocket);
         }
     }
 
-    private void SnapToRoom(DollhouseRoom target)
+    private bool IsEastOrWestSocket(DoorSocket socket)
     {
-        Collider targetCollider = target.GetComponent<Collider>();
+        if (socket == null)
+            return false;
 
-        if (roomCollider == null || targetCollider == null)
-            return;
+        return socket.name.Contains("Door_Socket_East") ||
+            socket.name.Contains("Door_Socket_West");
+    }
 
-        Bounds myBounds = roomCollider.bounds;
-        Bounds targetBounds = targetCollider.bounds;
+    private bool AreCompatibleSockets(
+        DoorSocket first,
+        DoorSocket second)
+    {
+        bool firstIsEast = first.name.Contains("Door_Socket_East");
+        bool secondIsEast = second.name.Contains("Door_Socket_East");
 
-        Vector3 direction =
-            transform.position - target.transform.position;
+        return firstIsEast != secondIsEast;
+    }
 
-        Vector3 newPosition = transform.position;
+    private void SnapToDoorSocket(
+        DoorSocket ownSocket,
+        DoorSocket targetSocket)
+    {
+        Vector3 offset =
+            targetSocket.transform.position -
+            ownSocket.transform.position;
 
-        if (Mathf.Abs(direction.x) > Mathf.Abs(direction.z))
-        {
-            if (direction.x > 0f)
-            {
-                newPosition.x =
-                    targetBounds.max.x +
-                    myBounds.extents.x;
-            }
-            else
-            {
-                newPosition.x =
-                    targetBounds.min.x -
-                    myBounds.extents.x;
-            }
-        }
-        else
-        {
-            if (direction.z > 0f)
-            {
-                newPosition.z =
-                    targetBounds.max.z +
-                    myBounds.extents.z;
-            }
-            else
-            {
-                newPosition.z =
-                    targetBounds.min.z -
-                    myBounds.extents.z;
-            }
-        }
-
-        transform.position = newPosition;
+        transform.position += offset;
     }
 
     private void TryPlaceOnGrid()
