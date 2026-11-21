@@ -39,6 +39,17 @@ public class DollhouseRoom : MonoBehaviour
     [SerializeField] private Transform worldRoom;
     [SerializeField] private Transform worldGridOrigin;
     [SerializeField] private float worldScaleFactor = 20f;
+    [SerializeField] private WorldDoorSocketMapping[] worldDoorSocketMappings;
+
+    [System.Serializable]
+    private class WorldDoorSocketMapping
+    {
+        [SerializeField] private DoorSocket miniSocket;
+        [SerializeField] private Transform worldSocket;
+
+        public DoorSocket MiniSocket => miniSocket;
+        public Transform WorldSocket => worldSocket;
+    }
 
     [Tooltip("World-Raum deaktivieren, wenn die Miniatur außerhalb des Grids liegt.")]
     [SerializeField] private bool hideWorldRoomWhenOffGrid = false;
@@ -83,8 +94,8 @@ public class DollhouseRoom : MonoBehaviour
     {
         SnapUprightAndQuantizeRotation();
         TryPlaceOnGridOrTable();
-        UpdateWorldRoom();
         CheckDoorConnections();
+        UpdateWorldRoom();
     }
 
     private void OnEnable()
@@ -201,8 +212,8 @@ public class DollhouseRoom : MonoBehaviour
             }
         }
 
-        UpdateWorldRoom();
         CheckDoorConnections();
+        UpdateWorldRoom();
     }
 
     private void SnapUprightAndQuantizeRotation()
@@ -495,10 +506,11 @@ public class DollhouseRoom : MonoBehaviour
 
     private void UpdateWorldRoom()
     {
-        if (worldRoom == null ||
-            grid == null ||
-            worldGridOrigin == null)
+        if (worldRoom == null || grid == null || worldGridOrigin == null)
         {
+            Debug.Log(
+                $"[WorldDoorSync] miniRoom={name}: WorldRoom sync skipped (missing {nameof(worldRoom)}, {nameof(grid)}, or {nameof(worldGridOrigin)} reference).",
+                this);
             return;
         }
 
@@ -509,6 +521,7 @@ public class DollhouseRoom : MonoBehaviour
                 worldRoom.gameObject.SetActive(false);
             }
 
+            Debug.Log($"[WorldDoorSync] miniRoom={name}: WorldRoom sync skipped (room is not placed on the grid).", this);
             return;
         }
 
@@ -531,6 +544,125 @@ public class DollhouseRoom : MonoBehaviour
         GetSnappedYRotation(transform.rotation, out float yRotation);
         float worldYaw = Mathf.Repeat(worldGridOrigin.eulerAngles.y + yRotation, 360f);
         worldRoom.rotation = Quaternion.Euler(0f, worldYaw, 0f);
+
+        AlignWorldRoomToConnectedDoorSocket();
+    }
+
+    private void AlignWorldRoomToConnectedDoorSocket()
+    {
+        if (doorSockets == null || doorSockets.Length == 0)
+        {
+            Debug.Log($"[WorldDoorSync] miniRoom={name}: No connected mapped mini socket (room has no mini sockets).", this);
+            return;
+        }
+
+        DoorSocket ownMiniSocket = null;
+        DoorSocket targetMiniSocket = null;
+        Transform ownWorldSocket = null;
+        Transform targetWorldSocket = null;
+        float nearestMiniDistance = float.MaxValue;
+        bool foundConnectedMappedMiniSocket = false;
+        bool targetMappingMissing = false;
+
+        DoorSocket[] allSockets = FindObjectsByType<DoorSocket>();
+        foreach (DoorSocket miniSocket in doorSockets)
+        {
+            if (miniSocket == null)
+                continue;
+
+            bool hasOwnMapping = TryGetWorldDoorSocket(miniSocket, out Transform mappedOwnWorldSocket);
+            string mappedWorldSocketName = hasOwnMapping ? mappedOwnWorldSocket.name : "<missing>";
+            Debug.Log(
+                $"[WorldDoorSync] miniRoom={name}, miniSocket={miniSocket.name}, IsConnected={miniSocket.IsConnected}, worldSocket={mappedWorldSocketName}",
+                this);
+
+            if (!miniSocket.IsConnected)
+                continue;
+
+            if (!hasOwnMapping)
+            {
+                Debug.Log(
+                    $"[WorldDoorSync] miniRoom={name}, miniSocket={miniSocket.name}: Target world socket mapping missing for this mini socket.",
+                    this);
+                continue;
+            }
+
+            foundConnectedMappedMiniSocket = true;
+            foreach (DoorSocket otherMiniSocket in allSockets)
+            {
+                if (otherMiniSocket == null || otherMiniSocket == miniSocket ||
+                    !otherMiniSocket.IsConnected ||
+                    !miniSocket.IsNearAndCompatible(otherMiniSocket))
+                {
+                    continue;
+                }
+
+                DollhouseRoom otherRoom = otherMiniSocket.GetComponentInParent<DollhouseRoom>();
+                if (otherRoom == null || otherRoom == this || !otherRoom.isPlacedOnGrid)
+                    continue;
+
+                if (!otherRoom.TryGetWorldDoorSocket(otherMiniSocket, out Transform mappedTargetWorldSocket))
+                {
+                    targetMappingMissing = true;
+                    Debug.Log(
+                        $"[WorldDoorSync] miniRoom={name}, miniSocket={miniSocket.name}, targetMiniSocket={otherMiniSocket.name}, IsConnected={miniSocket.IsConnected}: Target world socket mapping missing.",
+                        this);
+                    continue;
+                }
+
+                float miniDistance = Vector3.Distance(
+                    miniSocket.transform.position,
+                    otherMiniSocket.transform.position);
+                if (miniDistance >= nearestMiniDistance)
+                    continue;
+
+                nearestMiniDistance = miniDistance;
+                ownMiniSocket = miniSocket;
+                targetMiniSocket = otherMiniSocket;
+                ownWorldSocket = mappedOwnWorldSocket;
+                targetWorldSocket = mappedTargetWorldSocket;
+            }
+        }
+
+        if (ownMiniSocket == null || targetMiniSocket == null ||
+            ownWorldSocket == null || targetWorldSocket == null)
+        {
+            string reason = !foundConnectedMappedMiniSocket
+                ? "No connected mapped mini socket"
+                : targetMappingMissing
+                    ? "Target world socket mapping missing"
+                    : "No connected mapped mini socket pair";
+            Debug.Log($"[WorldDoorSync] miniRoom={name}: {reason}; no WorldRoom correction applied.", this);
+            return;
+        }
+
+        float distanceBefore = Vector3.Distance(ownWorldSocket.position, targetWorldSocket.position);
+        Vector3 worldOffset = targetWorldSocket.position - ownWorldSocket.position;
+        worldOffset.y = 0f;
+        worldRoom.position += worldOffset;
+        float distanceAfter = Vector3.Distance(ownWorldSocket.position, targetWorldSocket.position);
+
+        Debug.Log(
+            $"[WorldDoorSync] miniRoom={name}, miniSocket={ownMiniSocket.name}, IsConnected={ownMiniSocket.IsConnected}, worldSocket={ownWorldSocket.name}, targetMiniSocket={targetMiniSocket.name}, targetWorldSocket={targetWorldSocket.name}, worldDistanceBefore={distanceBefore:F4}, worldDistanceAfter={distanceAfter:F4}",
+            this);
+    }
+
+    private bool TryGetWorldDoorSocket(DoorSocket miniSocket, out Transform mappedWorldSocket)
+    {
+        if (worldDoorSocketMappings != null)
+        {
+            foreach (WorldDoorSocketMapping mapping in worldDoorSocketMappings)
+            {
+                if (mapping != null && mapping.MiniSocket == miniSocket && mapping.WorldSocket != null)
+                {
+                    mappedWorldSocket = mapping.WorldSocket;
+                    return true;
+                }
+            }
+        }
+
+        mappedWorldSocket = null;
+        return false;
     }
 
     public void CheckDoorConnections()
