@@ -660,6 +660,9 @@ MonoBehaviour:
   worldRoom: {fileID: 1589066518}
   worldGridOrigin: {fileID: 1040119049}
   worldScaleFactor: 20
+  worldDoorSocketMappings:
+  - miniSocket: {fileID: 265519219}
+    worldSocket: {fileID: 1668092397}
   hideWorldRoomWhenOffGrid: 0
   doorSockets:
   - {fileID: 265519219}
@@ -1649,7 +1652,10 @@ MonoBehaviour:
   worldRoom: {fileID: 1682553361}
   worldGridOrigin: {fileID: 1040119049}
   worldScaleFactor: 20
-  hideWorldRoomWhenOffGrid: 0
+  worldDoorSocketMappings:
+  - miniSocket: {fileID: 1645184728}
+    worldSocket: {fileID: 1372437470}
+  hideWorldRoomWhenOffGrid: 1
   doorSockets:
   - {fileID: 1645184728}
 --- !u!1 &1301844710
@@ -1876,6 +1882,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1362713851}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &1372437470 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3910520306135147362, guid: e394831306f125f43a01e5bc74698fc0, type: 3}
+  m_PrefabInstance: {fileID: 1682553360}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1387487669
 GameObject:
   m_ObjectHideFlags: 0
@@ -2185,6 +2196,11 @@ MonoBehaviour:
   onDisconnected:
     m_PersistentCalls:
       m_Calls: []
+--- !u!4 &1668092397 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1723981557188599804, guid: b2dff16945503b143830d2e775222c3f, type: 3}
+  m_PrefabInstance: {fileID: 1589066517}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1682553360
 PrefabInstance:
   m_ObjectHideFlags: 0
