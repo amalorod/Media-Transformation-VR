@@ -273,7 +273,7 @@ Transform:
   m_GameObject: {fileID: 93182885}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.21}
+  m_LocalPosition: {x: 2.23, y: 0.499, z: 1.801}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -943,6 +943,7 @@ GameObject:
   m_Component:
   - component: {fileID: 452617899}
   - component: {fileID: 452617898}
+  - component: {fileID: 452617900}
   m_Layer: 0
   m_Name: GameSystems
   m_TagString: Untagged
@@ -980,6 +981,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &452617900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 452617896}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 817f5c2a6e534904b5e326f7c962a001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WorldModeManager
+  xrOrigin: {fileID: 827554962}
+  xrHead: {fileID: 1297243502}
+  realitySpawn: {fileID: 269325755}
+  dreamSpawn: {fileID: 564168566}
+  screenFade: {fileID: 452617898}
+  behavioursToDisableDuringTransition: []
 --- !u!4 &463137355 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1606196658000578381, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
@@ -2270,6 +2289,11 @@ MonoBehaviour:
   hideWorldRoomWhenOffGrid: 1
   doorSockets:
   - {fileID: 1645184728}
+--- !u!4 &1297243502 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7917674758326848202, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
+  m_PrefabInstance: {fileID: 827554961}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1372437470 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3910520306135147362, guid: e394831306f125f43a01e5bc74698fc0, type: 3}
@@ -3414,6 +3438,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 754205882}
     m_Modifications:
+    - target: {fileID: 1606196658000578381, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.573
+      objectReference: {fileID: 0}
     - target: {fileID: 3801751549721972301, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
       propertyPath: m_Name
       value: Board_Room_Mini
