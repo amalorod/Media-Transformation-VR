@@ -511,6 +511,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90ec189267d143b439c0e0889a9cf705, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoorSocket
+  side: 3
   connectionDistance: 0.03
   facingDotThreshold: 0.75
   onConnected:
@@ -653,7 +654,7 @@ MonoBehaviour:
   grabInteractable: {fileID: 0}
   width: 2
   depth: 1
-  snapDistance: 0.04
+  doorSnapDistance: 0.04
   isPlayerCurrentRoom: 0
   lockWhenPlayerInside: 1
   worldRoom: {fileID: 1589066518}
@@ -1642,7 +1643,7 @@ MonoBehaviour:
   grabInteractable: {fileID: 0}
   width: 1
   depth: 1
-  snapDistance: 0.04
+  doorSnapDistance: 0.04
   isPlayerCurrentRoom: 0
   lockWhenPlayerInside: 1
   worldRoom: {fileID: 1682553361}
@@ -2175,6 +2176,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 90ec189267d143b439c0e0889a9cf705, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DoorSocket
+  side: 1
   connectionDistance: 0.03
   facingDotThreshold: 0.75
   onConnected:

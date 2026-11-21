@@ -1,6 +1,14 @@
 using UnityEngine;
 using UnityEngine.Events;
 
+public enum DoorSocketSide
+{
+    North,
+    East,
+    South,
+    West
+}
+
 /// <summary>
 /// Markiert eine Türöffnung an einem Puppenhaus-Raum.
 /// Überprüft die räumliche Ausrichtung und Nähe zu anderen Türöffnungen.
@@ -8,6 +16,9 @@ using UnityEngine.Events;
 public class DoorSocket : MonoBehaviour
 {
     [Header("Verbindungseinstellungen")]
+    [Tooltip("Seite des Raumes, an der sich diese Tür befindet")]
+    [SerializeField] private DoorSocketSide side;
+
     [Tooltip("Maximale Distanz in Metern, um als verbunden zu gelten")]
     [SerializeField] private float connectionDistance = 0.035f;
 
@@ -20,6 +31,24 @@ public class DoorSocket : MonoBehaviour
     public UnityEvent onDisconnected;
 
     public bool IsConnected { get; private set; }
+    public DoorSocketSide Side => side;
+
+    public bool IsCompatibleWith(DoorSocket other)
+    {
+        if (other == null || other == this)
+            return false;
+
+        return (side == DoorSocketSide.North && other.side == DoorSocketSide.South) ||
+               (side == DoorSocketSide.South && other.side == DoorSocketSide.North) ||
+               (side == DoorSocketSide.East && other.side == DoorSocketSide.West) ||
+               (side == DoorSocketSide.West && other.side == DoorSocketSide.East);
+    }
+
+    public bool IsNearAndCompatible(DoorSocket other)
+    {
+        return IsCompatibleWith(other) &&
+               Vector3.Distance(transform.position, other.transform.position) <= connectionDistance;
+    }
 
     /// <summary>
     /// Prüft, ob ein anderer Socket nahe genug ist UND ob die Türen sich gegenüberstehen
@@ -27,7 +56,7 @@ public class DoorSocket : MonoBehaviour
     /// </summary>
     public bool IsNearAndFacing(DoorSocket other)
     {
-        if (other == null || other == this)
+        if (!IsCompatibleWith(other))
             return false;
 
         float distance = Vector3.Distance(transform.position, other.transform.position);

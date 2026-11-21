@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
@@ -24,7 +25,8 @@ public class DollhouseRoom : MonoBehaviour
     [SerializeField] private int depth = 1;
 
     [Header("Magnetic Snap")]
-    [SerializeField] private float snapDistance = 0.04f;
+    [FormerlySerializedAs("snapDistance")]
+    [SerializeField] private float doorSnapDistance = 0.04f;
 
     [Header("Nora / Spieler-Standort")]
     [Tooltip("Ist dies der Raum, in dem Nora sich aktuell physisch befindet?")]
@@ -190,14 +192,12 @@ public class DollhouseRoom : MonoBehaviour
         SetGridPhysics();
         if (TryPlaceOnGrid())
         {
-            Vector3 gridPosition = transform.position;
-            Quaternion gridRotation = transform.rotation;
-
             TryMagneticSnap();
             if (!TryPlaceAtCurrentPosition())
             {
-                transform.SetPositionAndRotation(gridPosition, gridRotation);
-                TryPlaceAtCurrentPosition();
+                Debug.LogWarning(
+                    $"The snapped position for {name} could not be represented by a free grid footprint; keeping the socket-aligned position.",
+                    this);
             }
         }
 
@@ -381,7 +381,6 @@ public class DollhouseRoom : MonoBehaviour
             return false;
         }
 
-        grid.ClearRoom(this);
         if (!grid.CanPlaceRoom(this, startX, startZ, yRotation))
             return false;
 
@@ -438,18 +437,19 @@ public class DollhouseRoom : MonoBehaviour
 
             foreach (DoorSocket otherSocket in allSockets)
             {
-                if (otherSocket == null ||
-                    otherSocket == ownSocket ||
-                    otherSocket.transform.IsChildOf(transform))
+                if (otherSocket == null || otherSocket == ownSocket)
+                    continue;
+
+                DollhouseRoom otherRoom = otherSocket.GetComponentInParent<DollhouseRoom>();
+                if (otherRoom == null || otherRoom == this || !otherRoom.isPlacedOnGrid ||
+                    !ownSocket.IsCompatibleWith(otherSocket))
                 {
                     continue;
                 }
 
-                float distance =
-                    Vector3.Distance(
-                        ownSocket.transform.position,
-                        otherSocket.transform.position
-                    );
+                float distance = Vector3.Distance(
+                    ownSocket.transform.position,
+                    otherSocket.transform.position);
 
                 if (distance < nearestDistance)
                 {
@@ -462,7 +462,7 @@ public class DollhouseRoom : MonoBehaviour
 
         if (nearestOwnSocket != null &&
             nearestTargetSocket != null &&
-            nearestDistance <= snapDistance)
+            nearestDistance <= doorSnapDistance)
         {
             SnapToDoorSocket(
                 nearestOwnSocket,
@@ -475,23 +475,22 @@ public class DollhouseRoom : MonoBehaviour
         DoorSocket ownSocket,
         DoorSocket targetSocket)
     {
-        Vector3 worldOffset =
-            targetSocket.transform.position -
-            ownSocket.transform.position;
+        Vector3 offset = targetSocket.transform.position - ownSocket.transform.position;
+        offset.y = 0f;
+        transform.position += offset;
 
-        Quaternion boardRotation = grid != null
-            ? grid.transform.rotation
-            : Quaternion.identity;
-
-        // Offset in Koordinaten des Boards umwandeln,
-        // damit nur die horizontale Bewegung übernommen wird.
-        Vector3 localOffset =
-            Quaternion.Inverse(boardRotation) * worldOffset;
-
-        localOffset.y = 0f;
-
-        transform.position +=
-            boardRotation * localOffset;
+        if (Debug.isDebugBuild)
+        {
+            float snappedDistance = Vector3.Distance(
+                ownSocket.transform.position,
+                targetSocket.transform.position);
+            if (snappedDistance > 0.001f)
+            {
+                Debug.LogWarning(
+                    $"DoorSocket snap for {name} left a {snappedDistance:F4} m gap (Y is intentionally unchanged).",
+                    this);
+            }
+        }
     }
 
     private void UpdateWorldRoom()
@@ -532,7 +531,8 @@ public class DollhouseRoom : MonoBehaviour
             );
 
         GetSnappedYRotation(transform.rotation, out float yRotation);
-        worldRoom.rotation = worldGridOrigin.rotation * Quaternion.Euler(0f, yRotation, 0f);
+        float worldYaw = Mathf.Repeat(worldGridOrigin.eulerAngles.y + yRotation, 360f);
+        worldRoom.rotation = Quaternion.Euler(0f, worldYaw, 0f);
     }
 
     public void CheckDoorConnections()
@@ -561,10 +561,10 @@ public class DollhouseRoom : MonoBehaviour
                     }
 
                     DollhouseRoom otherRoom = otherSocket.GetComponentInParent<DollhouseRoom>();
-                    if (otherRoom != null && !otherRoom.isPlacedOnGrid)
+                    if (otherRoom == null || otherRoom == room || !otherRoom.isPlacedOnGrid)
                         continue;
 
-                    if (ownSocket.IsNearAndFacing(otherSocket))
+                    if (ownSocket.IsNearAndCompatible(otherSocket))
                     {
                         connectedSockets.Add(ownSocket);
                         connectedSockets.Add(otherSocket);
