@@ -514,21 +514,19 @@ public class DollhouseRoom : MonoBehaviour
 
         worldRoom.gameObject.SetActive(true);
 
-        Vector3 localMiniPosition =
-            grid.transform.InverseTransformPoint(
-                transform.position
-            );
-
-        Vector3 scaledPosition = new Vector3(
-            localMiniPosition.x * worldScaleFactor,
+        Vector3 miniLocal = grid.transform.InverseTransformPoint(transform.position);
+        Vector3 scaledLocal = new Vector3(
+            miniLocal.x * worldScaleFactor,
             0f,
-            localMiniPosition.z * worldScaleFactor
+            miniLocal.z * worldScaleFactor
         );
+        Vector3 worldPosition = worldGridOrigin.TransformPoint(scaledLocal);
 
-        worldRoom.position =
-            worldGridOrigin.TransformPoint(
-                scaledPosition
-            );
+        Debug.Log(
+            $"[WorldRoomSync] {name}: room={transform.position}, miniLocal={miniLocal}, scaledLocal={scaledLocal}, origin={worldGridOrigin.position}, world={worldPosition}",
+            this);
+
+        worldRoom.position = worldPosition;
 
         GetSnappedYRotation(transform.rotation, out float yRotation);
         float worldYaw = Mathf.Repeat(worldGridOrigin.eulerAngles.y + yRotation, 360f);

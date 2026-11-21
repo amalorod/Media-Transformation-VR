@@ -619,8 +619,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.24765554, y: 0.039393544, z: 0.34838656}
-  m_Center: {x: 0.03496556, y: -0.0024610162, z: 0.20116532}
+  m_Size: {x: 0.25, y: 0.044681925, z: 0.35}
+  m_Center: {x: 0.03496556, y: -0.0048019793, z: 0.20116532}
 --- !u!4 &406470451
 Transform:
   m_ObjectHideFlags: 0
@@ -654,7 +654,7 @@ MonoBehaviour:
   grabInteractable: {fileID: 0}
   width: 2
   depth: 1
-  doorSnapDistance: 0.04
+  doorSnapDistance: 0.4
   isPlayerCurrentRoom: 0
   lockWhenPlayerInside: 1
   worldRoom: {fileID: 1589066518}
@@ -1625,8 +1625,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.1932402, y: 0.036009073, z: 0.3038301}
-  m_Center: {x: -0.048891377, y: 0.055316508, z: -0.07826024}
+  m_Size: {x: 0.193, y: 0.039670184, z: 0.304}
+  m_Center: {x: -0.048891373, y: 0.05548141, z: -0.07826024}
 --- !u!114 &1276620980
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1643,7 +1643,7 @@ MonoBehaviour:
   grabInteractable: {fileID: 0}
   width: 1
   depth: 1
-  doorSnapDistance: 0.04
+  doorSnapDistance: 0.4
   isPlayerCurrentRoom: 0
   lockWhenPlayerInside: 1
   worldRoom: {fileID: 1682553361}
