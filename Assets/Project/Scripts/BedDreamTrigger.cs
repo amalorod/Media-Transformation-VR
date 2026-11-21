@@ -16,8 +16,14 @@ public class BedDreamTrigger : MonoBehaviour
     private void Awake()
     {
         GetComponent<BoxCollider>().isTrigger = true;
+        if (worldModeManager == null)
+            worldModeManager = FindAnyObjectByType<WorldModeManager>();
+        if (worldModeManager == null)
+            Debug.LogError("No active WorldModeManager was found in the scene for BedDreamTrigger.", this);
+
         CachePlayerRoot();
-        SetInteractionVisible(false);
+        if (interactionVisual != null && !interactionVisual.activeSelf)
+            interactionVisual.SetActive(true);
     }
 
     private void OnEnable()
@@ -46,11 +52,11 @@ public class BedDreamTrigger : MonoBehaviour
 
         enabledSleepActionHere = false;
         playerColliders.Clear();
-        SetInteractionVisible(false);
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        Debug.Log($"[BedDreamTrigger] ENTER: {other.name}", this);
         UpdatePlayerPresence(other, true);
     }
 
@@ -66,15 +72,17 @@ public class BedDreamTrigger : MonoBehaviour
 
     private void OnSleepPerformed(InputAction.CallbackContext context)
     {
+        Debug.Log("[BedDreamTrigger] ACTION PERFORMED", this);
         if (playerColliders.Count == 0)
-            return;
-
-        if (worldModeManager == null)
         {
-            Debug.LogError("WorldModeManager is not assigned on the bed trigger.", this);
+            Debug.Log("[BedDreamTrigger] ACTION IGNORED - PLAYER NOT INSIDE", this);
             return;
         }
 
+        if (worldModeManager == null)
+            return;
+
+        Debug.Log("[BedDreamTrigger] ENTER DREAM", this);
         worldModeManager.EnterDream();
     }
 
@@ -84,11 +92,14 @@ public class BedDreamTrigger : MonoBehaviour
             return;
 
         if (isInside)
-            playerColliders.Add(other);
-        else
-            playerColliders.Remove(other);
-
-        SetInteractionVisible(playerColliders.Count > 0);
+        {
+            if (playerColliders.Add(other))
+                Debug.Log("[BedDreamTrigger] PLAYER INSIDE", this);
+        }
+        else if (playerColliders.Remove(other))
+        {
+            Debug.Log("[BedDreamTrigger] PLAYER EXIT", this);
+        }
     }
 
     private bool IsPlayerCollider(Collider other)
@@ -109,9 +120,4 @@ public class BedDreamTrigger : MonoBehaviour
             playerRoot = playerCamera.transform.root;
     }
 
-    private void SetInteractionVisible(bool visible)
-    {
-        if (interactionVisual != null && interactionVisual.activeSelf != visible)
-            interactionVisual.SetActive(visible);
-    }
 }
