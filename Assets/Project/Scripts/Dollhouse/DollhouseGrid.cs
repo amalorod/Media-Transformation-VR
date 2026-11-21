@@ -15,9 +15,13 @@ public class DollhouseGrid : MonoBehaviour
     [Tooltip("Anzahl der Zellen in Z-Richtung")]
     public int gridDepth = 6;
 
-    [Header("Tisch / Ablagefläche (Außerhalb des Grids)")]
-    [Tooltip("Höhe der Ablagefläche relativ zum Grid-Pivot")]
+    [Header("Board-Oberfläche")]
+    [Tooltip("Höhe der Board-Oberfläche relativ zum Grid-Pivot")]
     public float surfaceHeightOffset = 0.0f;
+    [Tooltip("Abstand der Raum-Unterkante zur Board-Oberfläche in Metern")]
+    public float placementHeightOffset = 0.001f;
+
+    [Header("Tisch / Ablagefläche (Außerhalb des Grids)")]
     [Tooltip("Maximaler Radius um das Grid, in dem Räume auf dem Tisch abgelegt werden dürfen")]
     public float tableRadius = 1.2f;
 
@@ -86,19 +90,26 @@ public class DollhouseGrid : MonoBehaviour
     }
 
     /// <summary>
-    /// Berechnet die exakte Weltposition für einen platzierten Raum.
-    /// Der Raum sitzt immer exakt plan auf der Ebene (Y = 0f bzw. surfaceHeightOffset).
+    /// Berechnet die Zellmitte so, dass die Raum-Unterkante mit dem konfigurierten Abstand
+    /// über der Board-Oberfläche liegt. roomBottomOffset wird in Weltmetern angegeben.
     /// </summary>
-    public Vector3 GetWorldPositionForCell(int startX, int startZ, int width, int depth, float yRotation)
+    public Vector3 GetWorldPositionForCell(
+        int startX,
+        int startZ,
+        int width,
+        int depth,
+        float yRotation,
+        float roomBottomOffset)
     {
         GetEffectiveDimensions(width, depth, yRotation, out int effW, out int effD);
 
-        // Zentrum des Raumes berechnen
         float centerX = (startX + (effW * 0.5f)) * cellSize;
         float centerZ = (startZ + (effD * 0.5f)) * cellSize;
+        float verticalScale = transform.TransformVector(Vector3.up).magnitude;
+        float localHeight = surfaceHeightOffset +
+                            (placementHeightOffset + roomBottomOffset) / Mathf.Max(verticalScale, Mathf.Epsilon);
 
-        Vector3 localCenter = new Vector3(centerX, surfaceHeightOffset, centerZ);
-        return transform.TransformPoint(localCenter);
+        return transform.TransformPoint(new Vector3(centerX, localHeight, centerZ));
     }
 
     /// <summary>
@@ -212,7 +223,7 @@ public class DollhouseGrid : MonoBehaviour
             for (int z = 0; z < gridDepth; z++)
             {
                 Vector3 cellCenter = transform.TransformPoint(
-                    new Vector3((x + 0.5f) * cellSize, surfaceHeightOffset + 0.001f, (z + 0.5f) * cellSize)
+                    new Vector3((x + 0.5f) * cellSize, surfaceHeightOffset + placementHeightOffset, (z + 0.5f) * cellSize)
                 );
 
                 bool isOccupied = Application.isPlaying && occupiedCells != null && occupiedCells[x, z] != null;
