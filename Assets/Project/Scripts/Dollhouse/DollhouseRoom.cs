@@ -17,8 +17,7 @@ public class DollhouseRoom : MonoBehaviour
     [Header("XR Interaktion")]
     [SerializeField] private XRGrabInteractable grabInteractable;
 
-    [Tooltip("Nur physisches Greifen erlauben.")]
-    [SerializeField] private bool requireDirectHandGrab = true;
+    
 
     [Header("Raumgröße (in Grid-Zellen)")]
     [SerializeField] private int width = 1;
@@ -325,9 +324,7 @@ public class DollhouseRoom : MonoBehaviour
         }
 
         DoorSocket[] allSockets =
-            FindObjectsByType<DoorSocket>(
-                FindObjectsSortMode.None
-            );
+          FindObjectsByType<DoorSocket>();
 
         DoorSocket nearestOwnSocket = null;
         DoorSocket nearestTargetSocket = null;
@@ -494,9 +491,7 @@ public class DollhouseRoom : MonoBehaviour
         }
 
         DoorSocket[] allSockets =
-            FindObjectsByType<DoorSocket>(
-                FindObjectsSortMode.None
-            );
+            FindObjectsByType<DoorSocket>();
 
         foreach (DoorSocket ownSocket in doorSockets)
         {

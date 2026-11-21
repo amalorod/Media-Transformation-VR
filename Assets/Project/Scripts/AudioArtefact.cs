@@ -400,7 +400,7 @@ public class AudioArtefact : MonoBehaviour
         }
 
         // 2. Sonst in der Szene suchen (auch deaktivierte Objekte)
-        foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include))
         {
             if (behaviour == null) continue;
             if (!behaviour.GetType().Name.Contains("MoveProvider")) continue;
