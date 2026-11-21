@@ -3,9 +3,10 @@ using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 /// <summary>
-/// Puppenhaus-Raum (Miniatur) für die Nora-Mechanik (A Fisherman's Tale).
-/// Stellt sicher, dass Räume immer plan zum Boden stehen, sich in 90°-Schritten ausrichten,
-/// auch außerhalb des Boards abgelegt werden können und Noras Standraum geschützt ist.
+/// Puppenhaus-Raum (Miniatur) für die Nora-Mechanik.
+/// Räume stehen plan zum Boden, richten sich in 90°-Schritten aus,
+/// können außerhalb des Boards abgelegt werden und synchronisieren
+/// ihre finale Position mit der lebensgroßen Welt.
 /// </summary>
 [RequireComponent(typeof(Collider))]
 public class DollhouseRoom : MonoBehaviour
@@ -15,33 +16,37 @@ public class DollhouseRoom : MonoBehaviour
 
     [Header("XR Interaktion")]
     [SerializeField] private XRGrabInteractable grabInteractable;
-    [Tooltip("Nur physisches Greifen erlauben (deaktiviert Ray-Grab aus weiter Entfernung)")]
+
+    [Tooltip("Nur physisches Greifen erlauben.")]
     [SerializeField] private bool requireDirectHandGrab = true;
 
     [Header("Raumgröße (in Grid-Zellen)")]
     [SerializeField] private int width = 1;
     [SerializeField] private int depth = 1;
 
-    [Header("Nora / Spieler-Standort (Wohnzimmer-Schutz)")]
+    [Header("Magnetic Snap")]
+    [SerializeField] private float snapDistance = 0.04f;
+
+    [Header("Nora / Spieler-Standort")]
     [Tooltip("Ist dies der Raum, in dem Nora sich aktuell physisch befindet?")]
     [SerializeField] private bool isPlayerCurrentRoom = false;
-    [Tooltip("Wenn aktiv, kann der Raum, in dem Nora steht, nicht angehoben werden (kein Herunterfallen)")]
+
+    [Tooltip("Wenn aktiv, kann der Raum, in dem Nora steht, nicht angehoben werden.")]
     [SerializeField] private bool lockWhenPlayerInside = true;
 
-    [Header("Welt-Synchronisation (1:20 Maßstab)")]
+    [Header("Welt-Synchronisation")]
     [SerializeField] private Transform worldRoom;
     [SerializeField] private Transform worldGridOrigin;
     [SerializeField] private float worldScaleFactor = 20f;
-    [Tooltip("Soll der World-Raum ausgeblendet/inaktiviert werden, wenn die Miniatur auf dem Tisch liegt?")]
+
+    [Tooltip("World-Raum deaktivieren, wenn die Miniatur außerhalb des Grids liegt.")]
     [SerializeField] private bool hideWorldRoomWhenOffGrid = false;
 
-    [Header("Tür-Verbindungen (Sockets)")]
+    [Header("Tür-Verbindungen")]
     [SerializeField] private DoorSocket[] doorSockets;
 
-    // Status-Variablen
     private Collider roomCollider;
     private Vector3 lastValidPosition;
-    private Quaternion lastValidRotation;
     private bool hasValidGridPosition = false;
     private bool isPlacedOnGrid = false;
 
@@ -55,6 +60,7 @@ public class DollhouseRoom : MonoBehaviour
         roomCollider = GetComponent<Collider>();
 
         if (grabInteractable == null)
+        {
             grabInteractable = GetComponent<XRGrabInteractable>();
         }
 
@@ -62,14 +68,12 @@ public class DollhouseRoom : MonoBehaviour
         {
             doorSockets = GetComponentsInChildren<DoorSocket>();
         }
-    }
 
         ConfigureGrabSettings();
     }
 
     private void Start()
     {
-        // Initial-Zustand: Auf Grid oder Tisch einrasten
         SnapUprightAndQuantizeRotation();
         TryPlaceOnGridOrTable();
         UpdateWorldRoom();
@@ -78,30 +82,34 @@ public class DollhouseRoom : MonoBehaviour
 
     private void OnEnable()
     {
-        if (grabInteractable != null)
-        {
-            grabInteractable.selectEntered.AddListener(OnGrabbed);
-            grabInteractable.selectExited.AddListener(OnReleased);
-        }
+        if (grabInteractable == null)
+            return;
+
+        grabInteractable.selectEntered.AddListener(OnGrabbed);
+        grabInteractable.selectExited.AddListener(OnReleased);
     }
 
     private void OnDisable()
     {
-        if (grabInteractable != null)
-        {
-            grabInteractable.selectEntered.RemoveListener(OnGrabbed);
-            grabInteractable.selectExited.RemoveListener(OnReleased);
-        }
+        if (grabInteractable == null)
+            return;
+
+        grabInteractable.selectEntered.RemoveListener(OnGrabbed);
+        grabInteractable.selectExited.RemoveListener(OnReleased);
     }
 
     private void LateUpdate()
     {
-        if (grabInteractable == null || !grabInteractable.isSelected)
+        if (grabInteractable == null ||
+            !grabInteractable.isSelected ||
+            grid == null)
+        {
             return;
+        }
 
-        Quaternion boardRotation = grid != null
-            ? grid.transform.rotation
-            : Quaternion.identity;
+        // Während des Greifens X/Z-Neigung entfernen.
+        // Nur die Rotation um die Board-Y-Achse bleibt erhalten.
+        Quaternion boardRotation = grid.transform.rotation;
 
         Quaternion boardLocalRotation =
             Quaternion.Inverse(boardRotation) * transform.rotation;
@@ -115,31 +123,26 @@ public class DollhouseRoom : MonoBehaviour
         );
     }
 
-
-    private void CheckDoorConnections()
+    private void ConfigureGrabSettings()
     {
-        if (doorSockets == null || doorSockets.Length == 0)
+        if (grabInteractable == null)
             return;
 
-        Debug.Log($"CHECK CONNECTIONS: {name}");
-
-        // Dynamischer Attach-Punkt verhindert ruckartiges Springen zur Hand
+        // Verhindert ein starkes Springen zum Controller beim Greifen.
         grabInteractable.useDynamicAttach = true;
 
-        // Nora-Wohnzimmer sperren, falls gewünscht
         if (isPlayerCurrentRoom && lockWhenPlayerInside)
         {
             grabInteractable.enabled = false;
         }
 
-        // Um Ray-Grabs aus 100m zu unterbinden:
-        // Setze im Unity-Inspector den Interaction Layer z. B. auf "DollhouseDirect"
-        // und erlaube diesen Layer NUR dem XR Direct Interactor (nicht dem XR Ray Interactor)!
+        // requireDirectHandGrab wird derzeit bewusst nicht automatisch
+        // auf Interaction Layers angewendet.
+        // Die Layer-Konfiguration erfolgt im Unity-Inspector.
     }
 
     private void OnGrabbed(SelectEnterEventArgs args)
     {
-        // Wenn hochgehoben, belegte Grid-Zellen vorübergehend freigeben
         if (grid != null && isPlacedOnGrid)
         {
             grid.ClearRoom(this);
@@ -148,50 +151,33 @@ public class DollhouseRoom : MonoBehaviour
 
     private void OnReleased(SelectExitEventArgs args)
     {
-        SnapRotation();
+        // Zuerst gerade stellen und auf 0/90/180/270 Grad runden.
+        SnapUprightAndQuantizeRotation();
 
-        bool insideGrid = IsInsideGrid();
-
-        if (!insideGrid)
+        // Außerhalb des Boards keine automatische Grid-/World-Platzierung.
+        if (!IsInsideGrid())
         {
-            TryMagneticSnap();
+            isPlacedOnGrid = false;
+
+            if (hideWorldRoomWhenOffGrid && worldRoom != null)
+            {
+                worldRoom.gameObject.SetActive(false);
+            }
+
             CheckDoorConnections();
             return;
         }
 
+        // Innerhalb des Boards:
+        // Grid -> Door-Socket-Feinkorrektur -> Belegung -> World.
         TryPlaceOnGrid();
         TryMagneticSnap();
         RefreshGridOccupancy();
         UpdateWorldRoom();
-
-        // 4. Tür-Sockets überprüfen
         CheckDoorConnections();
     }
 
-    private bool IsInsideGrid()
-    {
-        if (grid == null)
-            return false;
-
-        Vector3 localPosition =
-            grid.transform.InverseTransformPoint(transform.position);
-
-        bool rotatedSideways =
-            Mathf.RoundToInt(transform.eulerAngles.y / 90f) % 2 != 0;
-
-        int occupiedWidth = rotatedSideways ? depth : width;
-        int occupiedDepth = rotatedSideways ? width : depth;
-
-        float maxX = (grid.gridWidth - occupiedWidth) * grid.cellSize;
-        float maxZ = (grid.gridDepth - occupiedDepth) * grid.cellSize;
-
-        return localPosition.x >= 0f &&
-            localPosition.x <= maxX &&
-            localPosition.z >= 0f &&
-            localPosition.z <= maxZ;
-    }
-
-    private void SnapRotation()
+    private void SnapUprightAndQuantizeRotation()
     {
         Quaternion boardRotation = grid != null
             ? grid.transform.rotation
@@ -210,15 +196,138 @@ public class DollhouseRoom : MonoBehaviour
         );
     }
 
+    private void TryPlaceOnGridOrTable()
+    {
+        if (IsInsideGrid())
+        {
+            TryPlaceOnGrid();
+            RefreshGridOccupancy();
+            isPlacedOnGrid = true;
+        }
+        else
+        {
+            isPlacedOnGrid = false;
+        }
+    }
+
+    private bool IsInsideGrid()
+    {
+        if (grid == null)
+            return false;
+
+        Vector3 localPosition =
+            grid.transform.InverseTransformPoint(transform.position);
+
+        bool rotatedSideways =
+            Mathf.RoundToInt(
+                transform.eulerAngles.y / 90f
+            ) % 2 != 0;
+
+        int occupiedWidth =
+            rotatedSideways ? depth : width;
+
+        int occupiedDepth =
+            rotatedSideways ? width : depth;
+
+        float maxX =
+            (grid.gridWidth - occupiedWidth) * grid.cellSize;
+
+        float maxZ =
+            (grid.gridDepth - occupiedDepth) * grid.cellSize;
+
+        return
+            localPosition.x >= 0f &&
+            localPosition.x <= maxX &&
+            localPosition.z >= 0f &&
+            localPosition.z <= maxZ;
+    }
+
+    private void TryPlaceOnGrid()
+    {
+        if (grid == null)
+            return;
+
+        float yRotation = transform.eulerAngles.y;
+
+        if (!grid.TryGetGridCoordinates(
+            transform.position,
+            width,
+            depth,
+            yRotation,
+            out int startX,
+            out int startZ))
+        {
+            return;
+        }
+
+        grid.ClearRoom(this);
+
+        if (grid.CanPlaceRoom(this, startX, startZ, yRotation))
+        {
+            Vector3 snappedPosition =
+                grid.GetWorldPositionForCell(
+                    startX,
+                    startZ,
+                    width,
+                    depth,
+                    yRotation
+                );
+
+            transform.position = snappedPosition;
+
+            grid.OccupyRoom(
+                this,
+                startX,
+                startZ,
+                yRotation
+            );
+
+            lastValidPosition = snappedPosition;
+            hasValidGridPosition = true;
+            isPlacedOnGrid = true;
+
+            return;
+        }
+
+        if (hasValidGridPosition)
+        {
+            transform.position = lastValidPosition;
+
+            float previousRotation =
+                transform.eulerAngles.y;
+
+            if (grid.TryGetGridCoordinates(
+                lastValidPosition,
+                width,
+                depth,
+                previousRotation,
+                out int previousX,
+                out int previousZ))
+            {
+                grid.OccupyRoom(
+                    this,
+                    previousX,
+                    previousZ,
+                    previousRotation
+                );
+            }
+
+            isPlacedOnGrid = true;
+        }
+    }
 
     private void TryMagneticSnap()
     {
-        if (doorSockets == null || doorSockets.Length == 0)
+        if (doorSockets == null ||
+            doorSockets.Length == 0)
+        {
             return;
+        }
 
-        DoorSocket[] allSockets = FindObjectsByType<DoorSocket>(
-            FindObjectsSortMode.None
-        );
+        DoorSocket[] allSockets =
+            FindObjectsByType<DoorSocket>(
+                FindObjectsSortMode.None
+            );
 
         DoorSocket nearestOwnSocket = null;
         DoorSocket nearestTargetSocket = null;
@@ -226,22 +335,23 @@ public class DollhouseRoom : MonoBehaviour
 
         foreach (DoorSocket ownSocket in doorSockets)
         {
-            if (!IsEastOrWestSocket(ownSocket))
+            if (ownSocket == null)
                 continue;
 
             foreach (DoorSocket otherSocket in allSockets)
             {
-                if (otherSocket == ownSocket ||
-                    otherSocket.transform.IsChildOf(transform) ||
-                    !AreCompatibleSockets(ownSocket, otherSocket))
+                if (otherSocket == null ||
+                    otherSocket == ownSocket ||
+                    otherSocket.transform.IsChildOf(transform))
                 {
                     continue;
                 }
 
-                float distance = Vector3.Distance(
-                    ownSocket.transform.position,
-                    otherSocket.transform.position
-                );
+                float distance =
+                    Vector3.Distance(
+                        ownSocket.transform.position,
+                        otherSocket.transform.position
+                    );
 
                 if (distance < nearestDistance)
                 {
@@ -256,27 +366,11 @@ public class DollhouseRoom : MonoBehaviour
             nearestTargetSocket != null &&
             nearestDistance <= snapDistance)
         {
-            SnapToDoorSocket(nearestOwnSocket, nearestTargetSocket);
+            SnapToDoorSocket(
+                nearestOwnSocket,
+                nearestTargetSocket
+            );
         }
-    }
-
-    private bool IsEastOrWestSocket(DoorSocket socket)
-    {
-        if (socket == null)
-            return false;
-
-        return socket.name.Contains("Door_Socket_East") ||
-            socket.name.Contains("Door_Socket_West");
-    }
-
-    private bool AreCompatibleSockets(
-        DoorSocket first,
-        DoorSocket second)
-    {
-        bool firstIsEast = first.name.Contains("Door_Socket_East");
-        bool secondIsEast = second.name.Contains("Door_Socket_East");
-
-        return firstIsEast != secondIsEast;
     }
 
     private void SnapToDoorSocket(
@@ -291,86 +385,136 @@ public class DollhouseRoom : MonoBehaviour
             ? grid.transform.rotation
             : Quaternion.identity;
 
+        // Offset in Koordinaten des Boards umwandeln,
+        // damit nur die horizontale Bewegung übernommen wird.
         Vector3 localOffset =
             Quaternion.Inverse(boardRotation) * worldOffset;
 
         localOffset.y = 0f;
 
-        transform.position += boardRotation * localOffset;
+        transform.position +=
+            boardRotation * localOffset;
     }
 
     private void RefreshGridOccupancy()
     {
-        if (grid == null)
+        if (grid == null || !IsInsideGrid())
+        {
+            isPlacedOnGrid = false;
             return;
+        }
 
-        Vector3 localPosition =
-            grid.transform.InverseTransformPoint(transform.position);
+        float yRotation = transform.eulerAngles.y;
 
-        int startX = Mathf.RoundToInt(localPosition.x / grid.cellSize);
-        int startZ = Mathf.RoundToInt(localPosition.z / grid.cellSize);
+        if (!grid.TryGetGridCoordinates(
+            transform.position,
+            width,
+            depth,
+            yRotation,
+            out int startX,
+            out int startZ))
+        {
+            isPlacedOnGrid = false;
+            return;
+        }
 
         grid.ClearRoom(this);
 
-        if (grid.CanPlaceRoom(this, startX, startZ))
+        if (grid.CanPlaceRoom(
+            this,
+            startX,
+            startZ,
+            yRotation))
         {
-            grid.OccupyRoom(this, startX, startZ);
+            grid.OccupyRoom(
+                this,
+                startX,
+                startZ,
+                yRotation
+            );
+
             lastValidPosition = transform.position;
-            hasValidPosition = true;
+            hasValidGridPosition = true;
+            isPlacedOnGrid = true;
         }
     }
 
-    /// <summary>
-    /// Synchronisiert den lebensgroßen Raum (WorldRoot) mit der Puppenhaus-Miniatur.
-    /// </summary>
     private void UpdateWorldRoom()
     {
-        if (worldRoom == null || grid == null || worldGridOrigin == null)
-            return;
-
-        if (!isPlacedOnGrid && hideWorldRoomWhenOffGrid)
+        if (worldRoom == null ||
+            grid == null ||
+            worldGridOrigin == null)
         {
-            worldRoom.gameObject.SetActive(false);
+            return;
+        }
+
+        if (!isPlacedOnGrid)
+        {
+            if (hideWorldRoomWhenOffGrid)
+            {
+                worldRoom.gameObject.SetActive(false);
+            }
+
             return;
         }
 
         worldRoom.gameObject.SetActive(true);
 
-        // Position relativ zum kleinen Grid berechnen
-        Vector3 localMiniPosition = grid.transform.InverseTransformPoint(transform.position);
+        Vector3 localMiniPosition =
+            grid.transform.InverseTransformPoint(
+                transform.position
+            );
 
-        // 1:20 Skalierung auf die echte Welt übertragen
         Vector3 scaledPosition = new Vector3(
             localMiniPosition.x * worldScaleFactor,
-            0f, // Bleibt immer eben zum Boden
+            0f,
             localMiniPosition.z * worldScaleFactor
         );
 
-        worldRoom.position = worldGridOrigin.TransformPoint(scaledPosition);
+        worldRoom.position =
+            worldGridOrigin.TransformPoint(
+                scaledPosition
+            );
 
-        // Rotation synchronisieren
-        Quaternion relativeRotation = Quaternion.Inverse(grid.transform.rotation) * transform.rotation;
-        worldRoom.rotation = worldGridOrigin.rotation * relativeRotation;
+        Quaternion relativeRotation =
+            Quaternion.Inverse(grid.transform.rotation) *
+            transform.rotation;
+
+        worldRoom.rotation =
+            worldGridOrigin.rotation *
+            relativeRotation;
     }
 
-    /// <summary>
-    /// Prüft, ob Sockets dieses Raumes benachbarten Sockets anderer Räume gegenüberstehen.
-    /// </summary>
     public void CheckDoorConnections()
     {
-        DoorSocket[] allSockets = FindObjectsByType<DoorSocket>(FindObjectsSortMode.None);
+        if (doorSockets == null ||
+            doorSockets.Length == 0)
+        {
+            return;
+        }
+
+        DoorSocket[] allSockets =
+            FindObjectsByType<DoorSocket>(
+                FindObjectsSortMode.None
+            );
 
         foreach (DoorSocket ownSocket in doorSockets)
         {
-            if (ownSocket == null) continue;
+            if (ownSocket == null)
+                continue;
+
             ownSocket.SetConnected(false);
 
-            if (!isPlacedOnGrid) continue; // Außerhalb des Grids keine Türverbindungen
+            if (!isPlacedOnGrid)
+                continue;
 
             foreach (DoorSocket otherSocket in allSockets)
             {
-                if (otherSocket == null || otherSocket == ownSocket)
+                if (otherSocket == null ||
+                    otherSocket == ownSocket)
+                {
                     continue;
+                }
 
                 if (otherSocket.transform.IsChildOf(transform))
                     continue;
@@ -385,13 +529,12 @@ public class DollhouseRoom : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Kann extern aufgerufen werden, wenn Nora den Raum wechselt.
-    /// </summary>
     public void SetPlayerInside(bool inside)
     {
         isPlayerCurrentRoom = inside;
-        if (grabInteractable != null && lockWhenPlayerInside)
+
+        if (grabInteractable != null &&
+            lockWhenPlayerInside)
         {
             grabInteractable.enabled = !inside;
         }
