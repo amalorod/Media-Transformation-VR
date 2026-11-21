@@ -39,6 +39,8 @@ public class DollhouseRoom : MonoBehaviour
     [SerializeField] private Transform worldRoom;
     [SerializeField] private Transform worldGridOrigin;
     [SerializeField] private float worldScaleFactor = 20f;
+    [SerializeField] private int floorIndex = 0;
+    [SerializeField] private float worldFloorHeight = 3f;
     [SerializeField] private WorldDoorSocketMapping[] worldDoorSocketMappings;
 
     [System.Serializable]
@@ -533,7 +535,8 @@ public class DollhouseRoom : MonoBehaviour
             0f,
             miniLocal.z * worldScaleFactor
         );
-        Vector3 worldPosition = worldGridOrigin.TransformPoint(scaledLocal);
+        Vector3 floorOffset = Vector3.up * (floorIndex * worldFloorHeight);
+        Vector3 worldPosition = worldGridOrigin.TransformPoint(scaledLocal + floorOffset);
 
         Debug.Log(
             $"[WorldRoomSync] {name}: room={transform.position}, miniLocal={miniLocal}, scaledLocal={scaledLocal}, origin={worldGridOrigin.position}, world={worldPosition}",
