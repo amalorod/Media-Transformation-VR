@@ -313,7 +313,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d6983680e2d65645aca9703309676dd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WakeUpTrigger
-  worldModeManager: {fileID: 0}
+  worldModeManager: {fileID: 452617900}
   wakeUpAction: {fileID: -1909745228438254300, guid: 79e028820dcbff0498617ea06080098f, type: 3}
   interactionVisual: {fileID: 1560945758}
 --- !u!1 &141855382
@@ -681,7 +681,7 @@ Transform:
   m_GameObject: {fileID: 280990925}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 23.909, y: -8.72, z: 34.26}
+  m_LocalPosition: {x: 23.304, y: -9.799, z: 34.26}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -1091,7 +1091,7 @@ Transform:
   m_GameObject: {fileID: 564168565}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.62, y: 0, z: 0}
+  m_LocalPosition: {x: -1.446, y: -0.14, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1392,6 +1392,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4295892835532738850, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4337832992001563684, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
       propertyPath: m_IsActive
       value: 1
@@ -1570,7 +1574,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8806329115733545878, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 9.62068
+      value: 8.899
       objectReference: {fileID: 0}
     - target: {fileID: 8806329115733545878, guid: 77e7c27b2c5525e4aa8cc9f99d654486, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2597,7 +2601,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 817f5c2a6e534904b5e326f7c962a003, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BedDreamTrigger
-  worldModeManager: {fileID: 0}
+  worldModeManager: {fileID: 452617900}
   sleepAction: {fileID: -1909745228438254300, guid: 79e028820dcbff0498617ea06080098f, type: 3}
   interactionVisual: {fileID: 1760273316}
 --- !u!65 &1635854843
@@ -3447,6 +3451,10 @@ PrefabInstance:
       value: Board_Room_Mini
       objectReference: {fileID: 0}
     - target: {fileID: 7035560703037289777, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7035560703037289777, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
       propertyPath: m_IsTrigger
       value: 0
       objectReference: {fileID: 0}
@@ -3456,7 +3464,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8111132654701011026, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.81727
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8111132654701011026, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
       propertyPath: m_LocalPosition.z
@@ -3490,7 +3498,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7035560703037289777, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 8111132654701011026, guid: 4990e02b2dc3be641bc2ed845554c6df, type: 3}
