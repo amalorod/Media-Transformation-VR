@@ -143,6 +143,35 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Gameplay",
+            "id": "fecc05fa-4cec-46c2-b60f-3261483aae7d",
+            "actions": [
+                {
+                    "name": "Sleep",
+                    "type": "Button",
+                    "id": "7cc31861-47f7-447f-962e-236b0f49e145",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "476e463f-2d3f-49ab-adf5-6dd78220a6f3",
+                    "path": "<XRController>{LeftHand}/secondaryButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Sleep",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": []

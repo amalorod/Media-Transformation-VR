@@ -1510,12 +1510,12 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1085905286}
-  m_LocalRotation: {x: 0, y: -0.8968727, z: 0, w: 0.44228876}
-  m_LocalPosition: {x: 0, y: 0, z: 0.0018}
+  m_LocalRotation: {x: -0, y: -0.8968727, z: -0, w: 0.44228876}
+  m_LocalPosition: {x: 0, y: 0, z: 0.0017991662}
   m_LocalScale: {x: 0.15, y: 0.15, z: 0.15}
   m_ConstrainProportionsScale: 1
   m_Children: []
-  m_Father: {fileID: 1635854840}
+  m_Father: {fileID: 1760273317}
   m_LocalEulerAnglesHint: {x: 0, y: -127.5, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -2212,8 +2212,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1818991449}
-  - {fileID: 1085905287}
+  - {fileID: 1760273317}
   m_Father: {fileID: 1375035370}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1635854841
@@ -2229,7 +2228,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BedDreamTrigger
   worldModeManager: {fileID: 452617897}
-  interactable: {fileID: 1635854842}
+  sleepAction: {fileID: -1909745228438254300, guid: 79e028820dcbff0498617ea06080098f, type: 3}
+  interactionVisual: {fileID: 1760273316}
 --- !u!114 &1635854842
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2319,7 +2319,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -2662,6 +2662,39 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 55ca2b8ee81d71b4384273b37519e0bf, type: 3}
   m_PrefabInstance: {fileID: 1741599797}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1760273316
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1760273317}
+  m_Layer: 0
+  m_Name: SleepVisual
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1760273317
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1760273316}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1818991449}
+  - {fileID: 1085905287}
+  m_Father: {fileID: 1635854840}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1818991448
 GameObject:
   m_ObjectHideFlags: 0
@@ -2689,13 +2722,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1818991448}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.15, y: 0.03, z: 0.15}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 823255754}
-  m_Father: {fileID: 1635854840}
+  m_Father: {fileID: 1760273317}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &1818991450
 CapsuleCollider:
