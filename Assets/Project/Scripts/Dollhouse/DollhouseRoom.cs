@@ -180,6 +180,7 @@ public class DollhouseRoom : MonoBehaviour
         {
             grid.ClearRoom(this);
             isPlacedOnGrid = false;
+            DetachFromBoard();
         }
 
         CheckDoorConnections();
@@ -382,6 +383,8 @@ public class DollhouseRoom : MonoBehaviour
         grid.OccupyRoom(this, startX, startZ, yRotation);
         SetGridPhysics();
         isPlacedOnGrid = true;
+        AlignDoorSocketsToGridEdges();
+        AttachToBoard();
         return true;
     }
 
@@ -404,7 +407,72 @@ public class DollhouseRoom : MonoBehaviour
 
         grid.OccupyRoom(this, startX, startZ, yRotation);
         isPlacedOnGrid = true;
+        AlignDoorSocketsToGridEdges();
+        AttachToBoard();
         return true;
+    }
+
+    /// <summary>
+    /// Setzt jeden Tür-Socket dieses Raums exakt auf die Kante seiner Grid-Fläche
+    /// (Seite gemäß DoorSocketSide) und auf eine einheitliche Höhe über dem Grid.
+    /// Dadurch liegen gegenüberliegende Sockets benachbarter Räume deckungsgleich,
+    /// unabhängig von Collider-Größe oder Neigung des Boards.
+    /// </summary>
+    private void AlignDoorSocketsToGridEdges()
+    {
+        if (grid == null || doorSockets == null)
+            return;
+
+        const float socketGridHeight = 0.02f;
+        float halfWidth = width * grid.cellSize * 0.5f;
+        float halfDepth = depth * grid.cellSize * 0.5f;
+        Vector3 centerGrid = grid.transform.InverseTransformPoint(transform.position);
+
+        foreach (DoorSocket socket in doorSockets)
+        {
+            if (socket == null)
+                continue;
+
+            Vector3 edgeRoom = socket.Side switch
+            {
+                DoorSocketSide.East => new Vector3(halfWidth, 0f, 0f),
+                DoorSocketSide.West => new Vector3(-halfWidth, 0f, 0f),
+                DoorSocketSide.North => new Vector3(0f, 0f, halfDepth),
+                DoorSocketSide.South => new Vector3(0f, 0f, -halfDepth),
+                _ => Vector3.zero
+            };
+
+            Vector3 edgeGrid = grid.transform.InverseTransformVector(transform.rotation * edgeRoom);
+            Vector3 targetGrid = centerGrid + edgeGrid;
+            targetGrid.y = socketGridHeight;
+            socket.transform.position = grid.transform.TransformPoint(targetGrid);
+        }
+    }
+
+    /// <summary>
+    /// Hängt den Raum an die Board-Wurzel (Parent des GridAnchor), damit er bei Neigung
+    /// und Drehung des Boards mitbewegt wird. Die Welt-Pose bleibt erhalten.
+    /// </summary>
+    private void AttachToBoard()
+    {
+        if (grid == null || grid.transform.parent == null)
+            return;
+
+        Transform board = grid.transform.parent;
+        if (transform.parent != board)
+            transform.SetParent(board, true);
+    }
+
+    /// <summary>
+    /// Löst den Raum wieder von der Board-Wurzel, wenn er vom Grid genommen wird.
+    /// </summary>
+    private void DetachFromBoard()
+    {
+        if (grid == null || grid.transform.parent == null)
+            return;
+
+        if (transform.parent == grid.transform.parent)
+            transform.SetParent(null, true);
     }
 
     private float GetRoomBottomOffset()
