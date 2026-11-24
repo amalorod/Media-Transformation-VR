@@ -31,6 +31,6 @@ public class Tag1Choice : MonoBehaviour
     private void OnSelected(SelectEnterEventArgs args)
     {
         if (flow != null)
-            flow.Choose(choiceId);
+            flow.Report(choiceId);
     }
 }
