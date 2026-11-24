@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Steuert Tag 1 in fester Storyboard-Reihenfolge (Paket 1 und Paket 2).
+/// Steuert Tag 1 in fester Storyboard-Reihenfolge (Paket 1, Paket 2 und Paket 3).
 /// Schritte werden entweder aus Modulzuständen und Distanzen gelesen oder über Report(id)
 /// von Interactables und Pickups gemeldet. Das Overlay zeigt aktuelles Ziel, kurze Bestätigung
 /// und nächstes Ziel und lässt sich über OverlayVisible abschalten.
@@ -31,6 +31,17 @@ public class Tag1FlowController : MonoBehaviour
     [SerializeField] private GameObject figureKrogstad;
     [SerializeField] private GameObject figureRank;
     [SerializeField] private GameObject figureAnneMarie;
+    [SerializeField] private GameObject armPart;
+    [SerializeField] private GameObject kopfPart;
+
+    [Header("Paket 3")]
+    [SerializeField] private Transform torvaldPunkt;
+    [SerializeField] private DollhouseRoom bedroomModule;
+    [SerializeField] private Transform[] assemblyParts;
+    [SerializeField] private Transform[] assemblyZones;
+    [SerializeField] private GameObject puppetNoraComplete;
+    [SerializeField] private float assemblyTolerance = 0.25f;
+    [SerializeField] private float fadeDuration = 2f;
 
     [Header("Anzeige")]
     [SerializeField] private bool overlayVisible = true;
@@ -61,7 +72,19 @@ public class Tag1FlowController : MonoBehaviour
         "Krogstad erscheint",                                                    // 20
         "Rank: Mantel an der Garderobe prüfen",                                  // 21
         "Kinder: drei Verstecke finden",                                         // 22
-        "Paket 2 abgeschlossen – Krogstads Konfrontation steht bevor."           // 23
+        "Paket 2 abgeschlossen – Krogstads Konfrontation steht bevor.",          // 23
+        "Krogstad: Schuldschein vom Tisch aufnehmen",                            // 24
+        "Haltung gegenüber Krogstad wählen (Trotzig / Flehend / Schweigend)",    // 25
+        "Baum schmücken: drei Kerzen anzünden",                                  // 26
+        "Wohnzimmertür abschließen (Schlüssel vom Haken)",                       // 27
+        "Torvald-Puppe ins Wohnzimmer zurückstellen (Torvalds Rückkehr)",        // 28
+        "Torvald fragt: Lügen oder Wahrheit?",                                   // 29
+        "Rebellion: Nora-Puppe aus Arm, Kopf, Torso und Beinen zusammensetzen",  // 30
+        "Rebellion: Puppe selbst aufrichten",                                    // 31
+        "Abend: Kinder ins Bett bringen",                                        // 32
+        "Schlafzimmer-Modul einsetzen (Alkoven)",                                // 33
+        "Im Alkoven schlafen gehen",                                             // 34
+        "Tag 1 abgeschlossen."                                                   // 35
     };
 
     private static readonly string[] PianoOrder = { "Klavier_1", "Klavier_3", "Klavier_2" };
@@ -87,6 +110,14 @@ public class Tag1FlowController : MonoBehaviour
     private readonly HashSet<string> chores = new HashSet<string>();
     private readonly HashSet<string> hideSpots = new HashSet<string>();
 
+    private string konfrontationHaltung = "";
+    private string torvaldAntwort = "";
+    private readonly HashSet<string> candles = new HashSet<string>();
+    private readonly HashSet<int> assembled = new HashSet<int>();
+    private bool rebellion;
+    private bool tag1Complete;
+    private float fadeTimer;
+
     public int StepIndex => stepIndex;
     public string MakronenChoice => makronenChoice;
     public string LindeChoice => lindeChoice;
@@ -95,6 +126,10 @@ public class Tag1FlowController : MonoBehaviour
     public bool RingWorn => ringWorn;
     public bool PianoSolved => pianoSolved;
     public bool HeistCaught => heistCaught;
+    public string KonfrontationHaltung => konfrontationHaltung;
+    public string TorvaldAntwort => torvaldAntwort;
+    public bool Rebellion => rebellion;
+    public bool Tag1Complete => tag1Complete;
     public bool OverlayVisible
     {
         get => overlayVisible;
@@ -105,6 +140,9 @@ public class Tag1FlowController : MonoBehaviour
     {
         if (confirmTimer > 0f)
             confirmTimer -= Time.deltaTime;
+
+        if (tag1Complete)
+            fadeTimer += Time.deltaTime;
 
         if (heistRunning)
         {
@@ -203,6 +241,26 @@ public class Tag1FlowController : MonoBehaviour
                     Complete("Krogstad: \"It is only dry business matters, madame.\"");
                 }
                 break;
+
+            case 23:
+                stepTimer += Time.deltaTime;
+                if (stepTimer >= 2f)
+                    Complete("Paket 2 abgeschlossen. Paket 3 beginnt.");
+                break;
+
+            case 28:
+                if (Near(torvaldPuppet, torvaldPunkt, puppetDistance))
+                    Complete("Torvald kehrt zurück. Er fragt: \"Has someone been here? I saw Krogstad leave the house.\"");
+                break;
+
+            case 30:
+                UpdateAssembly();
+                break;
+
+            case 33:
+                if (bedroomModule != null && bedroomModule.IsPlacedOnGrid)
+                    Complete("Schlafzimmer-Modul eingesetzt. Der Alkoven ist zugänglich.");
+                break;
         }
     }
 
@@ -256,6 +314,7 @@ public class Tag1FlowController : MonoBehaviour
                     {
                         if (id == "Schluessel") keyFound = true;
                         if (id == "Papier") codeHintShown = true;
+                        if (id == "Arm" && armPart != null) armPart.SetActive(true);
                         Confirm("Gefunden: " + id + " (" + heistItems.Count + " von 4).");
                     }
                 }
@@ -294,6 +353,7 @@ public class Tag1FlowController : MonoBehaviour
                     if (pianoProgress >= PianoOrder.Length)
                     {
                         pianoSolved = true;
+                        if (kopfPart != null) kopfPart.SetActive(true);
                         Complete("Klavier-Rätsel gelöst. Das Kopf-Teil liegt im Resonanzraum.");
                     }
                 }
@@ -336,6 +396,91 @@ public class Tag1FlowController : MonoBehaviour
                     }
                 }
                 break;
+
+            case 24:
+                if (id == "Schuldschein")
+                    Complete("Krogstad: \"Your father died on the 29th of September.\"");
+                break;
+
+            case 25:
+                if (id == "Trotzig" || id == "Flehend" || id == "Schweigend")
+                {
+                    konfrontationHaltung = id;
+                    if (figureKrogstad != null) figureKrogstad.SetActive(false);
+                    Complete("Krogstad geht: \"If I am thrown out again, you shall keep me company.\"");
+                }
+                break;
+
+            case 26:
+                if (id == "Kerze_1" || id == "Kerze_2" || id == "Kerze_3")
+                {
+                    candles.Add(id);
+                    if (candles.Count >= 3)
+                        Complete("Der Baum brennt mit drei Kerzen.");
+                }
+                break;
+
+            case 27:
+                if (id == "Tuer_Abschliessen")
+                    Complete("Wohnzimmertür abgeschlossen.");
+                break;
+
+            case 29:
+                if (id == "Luege" || id == "Wahrheit")
+                {
+                    torvaldAntwort = id;
+                    Complete(id == "Luege"
+                        ? "Nora: \"No one was here.\" Torvald: \"A songbird must never sing a false note.\""
+                        : "Nora: \"Krogstad came by, he wanted a favor.\" Torvald wird ernst.");
+                }
+                break;
+
+            case 31:
+                if (id == "Rebellion_Aufrichten")
+                {
+                    rebellion = true;
+                    Complete("Rebellion: Die Puppe steht aufrecht. Ein Dur-Glockenton.");
+                }
+                break;
+
+            case 32:
+                if (id == "Abend_Bett")
+                    Complete("Die Kinder gehen ins Bett. Der Abend ist vorbei.");
+                break;
+
+            case 34:
+                if (id == "Tag1_Ende")
+                {
+                    tag1Complete = true;
+                    fadeTimer = 0f;
+                    Complete("Tag 1 abgeschlossen.");
+                }
+                break;
+        }
+    }
+
+    private void UpdateAssembly()
+    {
+        if (assemblyParts == null || assemblyZones == null)
+            return;
+
+        int count = Mathf.Min(assemblyParts.Length, assemblyZones.Length);
+        for (int i = 0; i < count; i++)
+        {
+            if (assembled.Contains(i))
+                continue;
+
+            if (Near(assemblyParts[i], assemblyZones[i], assemblyTolerance))
+            {
+                assembled.Add(i);
+                Confirm("Teil eingesetzt (" + assembled.Count + " von " + count + ").");
+            }
+        }
+
+        if (assembled.Count >= count)
+        {
+            if (puppetNoraComplete != null) puppetNoraComplete.SetActive(true);
+            Complete("Die Nora-Puppe ist zusammengesetzt.");
         }
     }
 
@@ -383,6 +528,20 @@ public class Tag1FlowController : MonoBehaviour
 
     private void OnGUI()
     {
+        if (tag1Complete)
+        {
+            float alpha = Mathf.Clamp01(fadeTimer / Mathf.Max(fadeDuration, 0.01f));
+            Color previous = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, alpha);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = previous;
+            if (alpha >= 1f)
+            {
+                GUI.Label(new Rect(Screen.width * 0.5f - 120f, Screen.height * 0.5f, 240f, 30f), "Tag 1 abgeschlossen.");
+            }
+            return;
+        }
+
         if (!overlayVisible)
             return;
 
