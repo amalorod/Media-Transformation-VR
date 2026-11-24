@@ -41,6 +41,10 @@ public class DollhouseRoom : MonoBehaviour
     [SerializeField] private float worldScaleFactor = 20f;
     [SerializeField] private int floorIndex = 0;
     [SerializeField] private float worldFloorHeight = 3f;
+
+    [Tooltip("Optionale Bodenreferenz des WorldRoom. Ihre Oberkante (Collider, sonst Renderer) wird auf die Soll-Bodenhöhe gesetzt.")]
+    [SerializeField] private Transform worldFloorReference;
+
     [SerializeField] private WorldDoorSocketMapping[] worldDoorSocketMappings;
 
     [System.Serializable]
@@ -62,6 +66,7 @@ public class DollhouseRoom : MonoBehaviour
     private Collider roomCollider;
     private Rigidbody roomRigidbody;
     private bool isPlacedOnGrid = false;
+    private bool hasWarnedMissingWorldFloorReference = false;
 
     private Vector3 placementPreviewPosition;
     private Quaternion placementPreviewRotation;
@@ -548,7 +553,62 @@ public class DollhouseRoom : MonoBehaviour
         float worldYaw = Mathf.Repeat(worldGridOrigin.eulerAngles.y + yRotation, 360f);
         worldRoom.rotation = Quaternion.Euler(0f, worldYaw, 0f);
 
+        ApplyWorldFloorHeight();
+
         AlignWorldRoomToConnectedDoorSocket();
+    }
+
+    /// <summary>
+    /// Korrigiert ausschließlich die Welt-Y-Position des WorldRoom, sodass die Bodenoberkante
+    /// der worldFloorReference auf origin.y + floorIndex * worldFloorHeight liegt.
+    /// X und Z bleiben unverändert.
+    /// </summary>
+    private void ApplyWorldFloorHeight()
+    {
+        if (!TryGetWorldFloorTopY(out float currentFloorTopY))
+        {
+            if (!hasWarnedMissingWorldFloorReference)
+            {
+                hasWarnedMissingWorldFloorReference = true;
+                Debug.LogWarning(
+                    $"[WorldFloorSync] {name}: worldFloorReference fehlt oder enthält weder Collider noch Renderer. Bisheriges Höhenverhalten bleibt unverändert.",
+                    this);
+            }
+
+            return;
+        }
+
+        float targetFloorTopY = worldGridOrigin.position.y + floorIndex * worldFloorHeight;
+        float deltaY = targetFloorTopY - currentFloorTopY;
+        worldRoom.position += Vector3.up * deltaY;
+    }
+
+    private bool TryGetWorldFloorTopY(out float floorTopY)
+    {
+        floorTopY = float.MinValue;
+        if (worldFloorReference == null)
+            return false;
+
+        // Transform-Änderungen müssen für die Collider-Bounds bereits synchronisiert sein.
+        Physics.SyncTransforms();
+
+        bool found = false;
+        foreach (Collider col in worldFloorReference.GetComponentsInChildren<Collider>())
+        {
+            floorTopY = found ? Mathf.Max(floorTopY, col.bounds.max.y) : col.bounds.max.y;
+            found = true;
+        }
+
+        if (found)
+            return true;
+
+        foreach (Renderer rend in worldFloorReference.GetComponentsInChildren<Renderer>())
+        {
+            floorTopY = found ? Mathf.Max(floorTopY, rend.bounds.max.y) : rend.bounds.max.y;
+            found = true;
+        }
+
+        return found;
     }
 
     private void AlignWorldRoomToConnectedDoorSocket()

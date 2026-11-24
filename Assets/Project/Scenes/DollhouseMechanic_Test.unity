@@ -766,6 +766,7 @@ MonoBehaviour:
   worldScaleFactor: 20
   floorIndex: 0
   worldFloorHeight: 3
+  worldFloorReference: {fileID: 3521318425935283937}
   worldDoorSocketMappings:
   - miniSocket: {fileID: 265519219}
     worldSocket: {fileID: 1723981557887804649}
@@ -2156,6 +2157,7 @@ MonoBehaviour:
   worldScaleFactor: 20
   floorIndex: 0
   worldFloorHeight: 3
+  worldFloorReference: {fileID: 1431529300973354048}
   worldDoorSocketMappings:
   - miniSocket: {fileID: 1645184728}
     worldSocket: {fileID: 3910520304462109042}
