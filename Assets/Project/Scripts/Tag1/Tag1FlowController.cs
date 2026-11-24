@@ -44,8 +44,12 @@ public class Tag1FlowController : MonoBehaviour
     [SerializeField] private float fadeDuration = 2f;
 
     [Header("Anzeige")]
-    [SerializeField] private bool overlayVisible = true;
+    [SerializeField] private bool overlayVisible = false;
     [SerializeField] private float confirmDuration = 2.5f;
+
+    [Header("VR-Objective")]
+    [SerializeField] private Tag1ObjectiveDisplay objectiveDisplay;
+    [SerializeField] private bool objectiveVisible = true;
 
     private static readonly string[] Titles =
     {
@@ -87,6 +91,46 @@ public class Tag1FlowController : MonoBehaviour
         "Tag 1 abgeschlossen."                                                   // 35
     };
 
+    private static readonly string[] EnglishTitles =
+    {
+        "Carry the bags to the living room",                       // 0
+        "Carry the bags to the living room",                       // 1
+        "Place the office module on the mini house",               // 2
+        "Put the Torvald doll into the office module",             // 3
+        "Choose: Eat / Burn / Hide the macaroons",                 // 4
+        "Place the children's room module",                        // 5
+        "Part 1 complete: the house is ready",                     // 6
+        "Place the kitchen module on the mini house",              // 7
+        "Put the Bob doll into the children's room module",        // 8
+        "Take the leg piece from the rocking horse",               // 9
+        "Do two chores: dust, potatoes, flowers, tidy the nursery", // 10
+        "Put the Torvald doll into the kitchen (heist starts)",    // 11
+        "Search the office: bank papers, key, arm piece, paper",   // 12
+        "Open the casket with the office key",                     // 13
+        "Enter the code in the inner box",                         // 14
+        "Take Papa's pocket watch from the inner box",             // 15
+        "Piano puzzle: find the head piece (in order)",            // 16
+        "Find the torso piece in the bedroom wardrobe",            // 17
+        "Put the Linde doll into the mini house",                  // 18
+        "Linde's secret: make a choice",                           // 19
+        "Krogstad appears",                                        // 20
+        "Check the coat at the hallway (Rank)",                    // 21
+        "Kids: find three hiding spots",                           // 22
+        "Part 2 complete: Krogstad's confrontation is next",       // 23
+        "Take the promissory note from the table",                 // 24
+        "Choose your stance toward Krogstad",                      // 25
+        "Light three candles on the tree",                         // 26
+        "Lock the living room door (key on the hook)",             // 27
+        "Return the Torvald doll to the living room",              // 28
+        "Torvald asks: lie or truth?",                             // 29
+        "Assemble the Nora doll from four pieces",                 // 30
+        "Stand the doll up (rebellion)",                           // 31
+        "Evening: put the children to bed",                        // 32
+        "Place the bedroom module (alcove)",                       // 33
+        "Go to sleep in the alcove",                               // 34
+        "Day 1 complete."                                          // 35
+    };
+
     private static readonly string[] PianoOrder = { "Klavier_1", "Klavier_3", "Klavier_2" };
     private const string SafeCode = "2909";
 
@@ -94,6 +138,8 @@ public class Tag1FlowController : MonoBehaviour
     private float stepTimer;
     private string confirmText = "";
     private float confirmTimer;
+    private float objectiveCompleteTimer;
+    private string objectiveCompletedText = "";
 
     private string makronenChoice = "";
     private string lindeChoice = "";
@@ -130,6 +176,8 @@ public class Tag1FlowController : MonoBehaviour
     public string TorvaldAntwort => torvaldAntwort;
     public bool Rebellion => rebellion;
     public bool Tag1Complete => tag1Complete;
+    public bool ObjectiveCompleteActive => objectiveCompleteTimer > 0f;
+    public string ObjectiveCompletedText => objectiveCompletedText;
     public bool OverlayVisible
     {
         get => overlayVisible;
@@ -140,6 +188,9 @@ public class Tag1FlowController : MonoBehaviour
     {
         if (confirmTimer > 0f)
             confirmTimer -= Time.deltaTime;
+
+        if (objectiveCompleteTimer > 0f)
+            objectiveCompleteTimer -= Time.deltaTime;
 
         if (tag1Complete)
             fadeTimer += Time.deltaTime;
@@ -488,8 +539,28 @@ public class Tag1FlowController : MonoBehaviour
     {
         Debug.Log("[Tag1] " + text);
         Confirm(text);
+        if (stepIndex != 0 && stepIndex < EnglishTitles.Length)
+        {
+            objectiveCompletedText = EnglishTitles[stepIndex];
+            objectiveCompleteTimer = confirmDuration;
+        }
         stepIndex++;
         stepTimer = 0f;
+    }
+
+    private void LateUpdate()
+    {
+        if (objectiveDisplay == null)
+            return;
+
+        objectiveDisplay.SetVisible(objectiveVisible);
+        if (!objectiveVisible)
+            return;
+
+        if (objectiveCompleteTimer > 0f)
+            objectiveDisplay.SetText("OBJECTIVE COMPLETE", objectiveCompletedText);
+        else
+            objectiveDisplay.SetText("OBJECTIVE", EnglishTitles[Mathf.Min(stepIndex, EnglishTitles.Length - 1)]);
     }
 
     private void Confirm(string text)
