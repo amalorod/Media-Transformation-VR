@@ -1,17 +1,19 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
+/// <summary>
+/// Bett-Trigger für den Traumwechsel. Der frühere Y-Eingabepfad (InputAction "Sleep") wurde entfernt,
+/// damit die Y-Taste ausschließlich die Türsteuerung bedient. Die Dream-Architektur (WorldModeManager.EnterDream)
+/// bleibt erhalten und wird später über Tag1_EndInteractable beziehungsweise Trigger/Select ausgelöst.
+/// </summary>
 [RequireComponent(typeof(BoxCollider))]
 public class BedDreamTrigger : MonoBehaviour
 {
     [SerializeField] private WorldModeManager worldModeManager;
-    [SerializeField] private InputActionReference sleepAction;
     [SerializeField] private GameObject interactionVisual;
 
     private readonly HashSet<Collider> playerColliders = new HashSet<Collider>();
     private Transform playerRoot;
-    private bool enabledSleepActionHere;
 
     private void Awake()
     {
@@ -26,31 +28,8 @@ public class BedDreamTrigger : MonoBehaviour
             interactionVisual.SetActive(true);
     }
 
-    private void OnEnable()
-    {
-        if (sleepAction == null || sleepAction.action == null)
-        {
-            Debug.LogError("Sleep Input Action is not assigned on the bed trigger.", this);
-            return;
-        }
-
-        enabledSleepActionHere = !sleepAction.action.enabled;
-        if (enabledSleepActionHere)
-            sleepAction.action.Enable();
-
-        sleepAction.action.performed += OnSleepPerformed;
-    }
-
     private void OnDisable()
     {
-        if (sleepAction != null && sleepAction.action != null)
-        {
-            sleepAction.action.performed -= OnSleepPerformed;
-            if (enabledSleepActionHere)
-                sleepAction.action.Disable();
-        }
-
-        enabledSleepActionHere = false;
         playerColliders.Clear();
     }
 
@@ -70,16 +49,10 @@ public class BedDreamTrigger : MonoBehaviour
         UpdatePlayerPresence(other, false);
     }
 
-    private void OnSleepPerformed(InputAction.CallbackContext context)
+    /// <summary>Löst den Traumwechsel aus. Wird nicht mehr per Y aufgerufen, sondern später über Interact/Trigger.</summary>
+    public void EnterDream()
     {
-        Debug.Log("[BedDreamTrigger] ACTION PERFORMED", this);
-        if (playerColliders.Count == 0)
-        {
-            Debug.Log("[BedDreamTrigger] ACTION IGNORED - PLAYER NOT INSIDE", this);
-            return;
-        }
-
-        if (worldModeManager == null)
+        if (playerColliders.Count == 0 || worldModeManager == null)
             return;
 
         Debug.Log("[BedDreamTrigger] ENTER DREAM", this);

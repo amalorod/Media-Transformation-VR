@@ -1,17 +1,19 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
+/// <summary>
+/// Aufwach-Trigger für den Traumwechsel. Der frühere Y-Eingabepfad (InputAction "Sleep") wurde entfernt,
+/// damit die Y-Taste ausschließlich die Türsteuerung bedient. Die Wake-Architektur (WorldModeManager.WakeUp)
+/// bleibt erhalten und wird später über Tag1_EndInteractable beziehungsweise Trigger/Select ausgelöst.
+/// </summary>
 [RequireComponent(typeof(BoxCollider))]
 public class WakeUpTrigger : MonoBehaviour
 {
     [SerializeField] private WorldModeManager worldModeManager;
-    [SerializeField] private InputActionReference wakeUpAction;
     [SerializeField] private GameObject interactionVisual;
 
     private readonly HashSet<Collider> playerColliders = new HashSet<Collider>();
     private Transform playerRoot;
-    private bool enabledWakeUpActionHere;
 
     private void Awake()
     {
@@ -26,31 +28,8 @@ public class WakeUpTrigger : MonoBehaviour
             interactionVisual.SetActive(true);
     }
 
-    private void OnEnable()
-    {
-        if (wakeUpAction == null || wakeUpAction.action == null)
-        {
-            Debug.LogError("Wake Up Input Action is not assigned on the wake-up trigger.", this);
-            return;
-        }
-
-        enabledWakeUpActionHere = !wakeUpAction.action.enabled;
-        if (enabledWakeUpActionHere)
-            wakeUpAction.action.Enable();
-
-        wakeUpAction.action.performed += OnWakeUpPerformed;
-    }
-
     private void OnDisable()
     {
-        if (wakeUpAction != null && wakeUpAction.action != null)
-        {
-            wakeUpAction.action.performed -= OnWakeUpPerformed;
-            if (enabledWakeUpActionHere)
-                wakeUpAction.action.Disable();
-        }
-
-        enabledWakeUpActionHere = false;
         playerColliders.Clear();
     }
 
@@ -70,16 +49,10 @@ public class WakeUpTrigger : MonoBehaviour
         UpdatePlayerPresence(other, false);
     }
 
-    private void OnWakeUpPerformed(InputAction.CallbackContext context)
+    /// <summary>Löst das Aufwachen aus. Wird nicht mehr per Y aufgerufen, sondern später über Interact/Trigger.</summary>
+    public void Wake()
     {
-        Debug.Log("[WakeUpTrigger] ACTION PERFORMED", this);
-        if (playerColliders.Count == 0)
-        {
-            Debug.Log("[WakeUpTrigger] ACTION IGNORED - PLAYER NOT INSIDE", this);
-            return;
-        }
-
-        if (worldModeManager == null)
+        if (playerColliders.Count == 0 || worldModeManager == null)
             return;
 
         Debug.Log("[WakeUpTrigger] WAKE UP", this);

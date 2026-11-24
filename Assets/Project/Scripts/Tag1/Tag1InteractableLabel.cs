@@ -1,49 +1,90 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 /// <summary>
-/// Kleines World-Space-Label für ein Interaktionsobjekt. Es ist standardmäßig verborgen und wird bei Hover
-/// sichtbar. Select blendet es aus. Das Label blockiert keine Raycasts und schaut zur Kamera.
+/// Gemeinsame Beschriftung für Interaktions- und Storyobjekte.
+/// Das Namenslabel über dem Objekt ist nur im Informationsmodus (rechter Secondary Button) sichtbar.
+/// Der kopfgebundene Aktionshinweis erscheint unabhängig davon beim Hover.
+/// Das Label hat keinen GraphicRaycaster und blockiert keine XR-Rays.
 /// </summary>
 [RequireComponent(typeof(XRBaseInteractable))]
 public class Tag1InteractableLabel : MonoBehaviour
 {
     [SerializeField] private string labelText = "";
-    [SerializeField] private float heightOffset = 0.2f;
+    [SerializeField] private string actionText = "Grab · Grip";
+    [SerializeField] private float heightOffset = 0.15f;
+
+    private static readonly List<Tag1InteractableLabel> Registry = new List<Tag1InteractableLabel>();
 
     private XRBaseInteractable interactable;
     private Transform labelRoot;
+    private TMP_Text labelTmp;
     private Renderer[] targetRenderers;
+    private bool infoVisible;
+
+    private string DisplayName => string.IsNullOrEmpty(labelText) ? gameObject.name : labelText;
+
+    /// <summary>Blendet alle registrierten Labels ein oder aus. Wird vom Tag1InformationMode gesteuert.</summary>
+    public static void SetAllLabelsVisible(bool visible)
+    {
+        for (int i = Registry.Count - 1; i >= 0; i--)
+        {
+            Tag1InteractableLabel label = Registry[i];
+            if (label == null)
+            {
+                Registry.RemoveAt(i);
+                continue;
+            }
+
+            label.infoVisible = visible;
+            label.ApplyVisibility();
+        }
+    }
 
     private void Awake()
     {
         interactable = GetComponent<XRBaseInteractable>();
-        targetRenderers = GetComponentsInChildren<Renderer>();
+        targetRenderers = GetComponentsInChildren<Renderer>(true);
         BuildLabel();
     }
 
     private void OnEnable()
     {
-        if (interactable == null) return;
+        if (!Registry.Contains(this))
+            Registry.Add(this);
+
+        if (interactable == null)
+            return;
+
         interactable.hoverEntered.AddListener(OnHoverEntered);
         interactable.hoverExited.AddListener(OnHoverExited);
-        interactable.selectEntered.AddListener(OnSelected);
+        interactable.selectEntered.AddListener(OnSelectEntered);
     }
 
     private void OnDisable()
     {
-        if (interactable == null) return;
-        interactable.hoverEntered.RemoveListener(OnHoverEntered);
-        interactable.hoverExited.RemoveListener(OnHoverExited);
-        interactable.selectEntered.RemoveListener(OnSelected);
+        Registry.Remove(this);
+
+        if (interactable != null)
+        {
+            interactable.hoverEntered.RemoveListener(OnHoverEntered);
+            interactable.hoverExited.RemoveListener(OnHoverExited);
+            interactable.selectEntered.RemoveListener(OnSelectEntered);
+        }
+
+        infoVisible = false;
         SetLabelVisible(false);
+        HidePrompt();
     }
 
     private void OnDestroy()
     {
-        if (labelRoot != null) Destroy(labelRoot.gameObject);
+        if (labelRoot != null)
+            Destroy(labelRoot.gameObject);
     }
 
     private void LateUpdate()
@@ -51,19 +92,42 @@ public class Tag1InteractableLabel : MonoBehaviour
         if (labelRoot == null || !labelRoot.gameObject.activeSelf)
             return;
 
-        Vector3 top = GetTopPosition();
-        labelRoot.position = top + Vector3.up * heightOffset;
+        labelRoot.position = GetTopPosition() + Vector3.up * heightOffset;
 
         Camera cam = Camera.main;
         if (cam != null)
             labelRoot.rotation = Quaternion.LookRotation(labelRoot.position - cam.transform.position);
     }
 
-    private void OnHoverEntered(HoverEnterEventArgs args) => SetLabelVisible(true);
+    private void OnHoverEntered(HoverEnterEventArgs args) => RefreshPrompt();
 
-    private void OnHoverExited(HoverExitEventArgs args) => SetLabelVisible(false);
+    private void OnHoverExited(HoverExitEventArgs args) => HidePrompt();
 
-    private void OnSelected(SelectEnterEventArgs args) => SetLabelVisible(false);
+    private void OnSelectEntered(SelectEnterEventArgs args) => HidePrompt();
+
+    /// <summary>Ein Objekt wird nur beschriftet, wenn es im Informationsmodus aktiv und sichtbar ist.</summary>
+    private void ApplyVisibility()
+    {
+        SetLabelVisible(infoVisible && isActiveAndEnabled && gameObject.activeInHierarchy);
+    }
+
+    private string GetActionLine()
+    {
+        var source = GetComponent<ITag1ActionSource>();
+        return source != null ? source.GetActionLine() : actionText;
+    }
+
+    private void RefreshPrompt()
+    {
+        if (Tag1InteractionPrompt.Instance != null)
+            Tag1InteractionPrompt.Instance.Show(DisplayName, GetActionLine());
+    }
+
+    private void HidePrompt()
+    {
+        if (Tag1InteractionPrompt.Instance != null)
+            Tag1InteractionPrompt.Instance.Hide();
+    }
 
     private void SetLabelVisible(bool visible)
     {
@@ -73,26 +137,37 @@ public class Tag1InteractableLabel : MonoBehaviour
 
     private void BuildLabel()
     {
-        var root = new GameObject("Label_" + gameObject.name);
+        var root = new GameObject("Label_" + gameObject.name, typeof(RectTransform));
         labelRoot = root.transform;
 
         var canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
-        var rect = canvas.GetComponent<RectTransform>();
+        var rect = (RectTransform)root.transform;
         rect.sizeDelta = new Vector2(400f, 70f);
         rect.localScale = Vector3.one * 0.0012f;
 
-        var textGo = new GameObject("Text");
+        var bgGo = new GameObject("Background", typeof(RectTransform), typeof(Image));
+        bgGo.transform.SetParent(root.transform, false);
+        var bg = bgGo.GetComponent<Image>();
+        bg.color = new Color(0f, 0f, 0f, 0.6f);
+        bg.raycastTarget = false;
+        var bgRect = bg.rectTransform;
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = Vector2.zero;
+        bgRect.offsetMax = Vector2.zero;
+
+        var textGo = new GameObject("Text", typeof(RectTransform));
         textGo.transform.SetParent(root.transform, false);
-        var text = textGo.AddComponent<TextMeshProUGUI>();
-        text.text = string.IsNullOrEmpty(labelText) ? gameObject.name : labelText;
-        text.fontSize = 42f;
-        text.alignment = TextAlignmentOptions.Center;
-        text.color = Color.white;
-        text.outlineWidth = 0.25f;
-        text.outlineColor = Color.black;
-        text.raycastTarget = false;
-        var textRect = text.rectTransform;
+        labelTmp = textGo.AddComponent<TextMeshProUGUI>();
+        labelTmp.text = DisplayName;
+        labelTmp.fontSize = 42f;
+        labelTmp.alignment = TextAlignmentOptions.Center;
+        labelTmp.color = Color.white;
+        labelTmp.outlineWidth = 0.25f;
+        labelTmp.outlineColor = Color.black;
+        labelTmp.raycastTarget = false;
+        var textRect = labelTmp.rectTransform;
         textRect.sizeDelta = new Vector2(400f, 70f);
 
         root.SetActive(false);
