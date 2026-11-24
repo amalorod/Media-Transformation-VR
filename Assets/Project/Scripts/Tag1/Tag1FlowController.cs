@@ -14,8 +14,7 @@ public class Tag1FlowController : MonoBehaviour
     [SerializeField] private DollhouseRoom childrenModule;
     [SerializeField] private Transform torvaldPuppet;
     [SerializeField] private Transform[] shoppingBags;
-    [SerializeField] private Transform bagDropZone;
-    [SerializeField] private float bagDropRadius = 1f;
+    [SerializeField] private Tag1_BagDropZone bagDropZone;
     [SerializeField] private float puppetDistance = 0.3f;
     [SerializeField] private float prologDuration = 3f;
 
@@ -572,21 +571,19 @@ public class Tag1FlowController : MonoBehaviour
 
     private bool AllBagsInDropZone()
     {
-        if (bagDropZone == null || shoppingBags == null || shoppingBags.Length == 0)
+        if (bagDropZone == null)
             return false;
 
-        foreach (Transform bag in shoppingBags)
+        // Initialize the zone with our bags if not already done
+        if (shoppingBags != null && shoppingBags.Length >= 2)
         {
-            if (bag == null)
-                return false;
-
-            Vector3 d = bag.position - bagDropZone.position;
-            d.y = 0f;
-            if (d.magnitude > bagDropRadius)
-                return false;
+            // We use a simple setup here, assuming shoppingBags[0] is Bag A and [1] is Bag B
+            // If the script already has them assigned in the inspector, that's fine too.
+            // But we ensure it knows about them.
+            bagDropZone.Setup(shoppingBags[0], shoppingBags[1]);
         }
 
-        return true;
+        return bagDropZone.AreAllBagsInZone;
     }
 
     private static bool Near(Transform a, Transform b, float distance)
