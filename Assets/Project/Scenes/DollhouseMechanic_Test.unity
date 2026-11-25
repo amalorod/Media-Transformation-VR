@@ -18961,7 +18961,7 @@ MonoBehaviour:
   shoppingBags:
   - {fileID: 1815361135}
   - {fileID: 1861756859}
-  bagDropZone: {fileID: 1810701382}
+  bagDropZone: {fileID: 1810701384}
   puppetDistance: 0.3
   prologDuration: 3
   kitchenModule: {fileID: 1448325720}
@@ -23425,6 +23425,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1810701382}
   - component: {fileID: 1810701383}
+  - component: {fileID: 1810701384}
   m_Layer: 0
   m_Name: Tag1_BagDropZone
   m_TagString: Untagged
@@ -23468,6 +23469,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1810701384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1810701381}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0459e528615fb2542b8aee676112540c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Tag1_BagDropZone
+  shoppingBagA: {fileID: 1815361135}
+  shoppingBagB: {fileID: 1861756859}
 --- !u!1 &1811899547
 GameObject:
   m_ObjectHideFlags: 0

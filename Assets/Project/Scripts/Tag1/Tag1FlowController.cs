@@ -92,8 +92,8 @@ public class Tag1FlowController : MonoBehaviour
 
     private static readonly string[] EnglishTitles =
     {
-        "Carry the bags to the living room",                       // 0
-        "Carry the bags to the living room",                       // 1
+        "Open the door and carry the bags to the living room",     // 0
+        "Open the door and carry the bags to the living room",     // 1
         "Place the office module on the mini house",               // 2
         "Put the Torvald doll into the office module",             // 3
         "Choose: Eat / Burn / Hide the macaroons",                 // 4
