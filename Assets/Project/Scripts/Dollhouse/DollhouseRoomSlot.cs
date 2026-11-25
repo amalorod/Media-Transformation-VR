@@ -146,7 +146,7 @@ public sealed class DollhouseRoomSlot : MonoBehaviour
         Color color = idleColor;
         if (heldModule != null && Matches(heldModule))
         {
-            color = IsWithinSnapRadius(heldModule.transform.position)
+            color = IsWithinSnapRadius(heldModule.ModuleSnapAnchorPosition)
                 ? validColor
                 : grabbedColor;
         }

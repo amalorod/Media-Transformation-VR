@@ -26,6 +26,7 @@ public class DollhouseRoom : MonoBehaviour
 
     [Header("Fester Story-Slot")]
     [SerializeField] private DollhouseRoomSlotType requiredSlotType = DollhouseRoomSlotType.None;
+    [SerializeField] private Transform moduleSnapAnchor;
 
     [Header("Magnetic Snap")]
     [FormerlySerializedAs("snapDistance")]
@@ -44,6 +45,7 @@ public class DollhouseRoom : MonoBehaviour
     [SerializeField] private float worldScaleFactor = 20f;
     [SerializeField] private int floorIndex = 0;
     [SerializeField] private float worldFloorHeight = 3f;
+    [SerializeField] private float worldYawOffsetDegrees;
 
     [Tooltip("Optionale Bodenreferenz des WorldRoom. Ihre Oberkante (Collider, sonst Renderer) wird auf die Soll-Bodenhöhe gesetzt.")]
     [SerializeField] private Transform worldFloorReference;
@@ -70,11 +72,6 @@ public class DollhouseRoom : MonoBehaviour
     private Rigidbody roomRigidbody;
     private bool isPlacedOnGrid = false;
     private bool hasWarnedMissingWorldFloorReference = false;
-    private Transform startingParent;
-    private Vector3 startingLocalPosition;
-    private Quaternion startingLocalRotation;
-    private DollhouseRoomSlot lastValidSlot;
-
     private Vector3 placementPreviewPosition;
     private Quaternion placementPreviewRotation;
 
@@ -82,6 +79,8 @@ public class DollhouseRoom : MonoBehaviour
     public int Depth => depth;
     public int FloorIndex => floorIndex;
     public DollhouseRoomSlotType RequiredSlotType => requiredSlotType;
+    public Transform ModuleSnapAnchor => moduleSnapAnchor;
+    public Vector3 ModuleSnapAnchorPosition => moduleSnapAnchor != null ? moduleSnapAnchor.position : transform.position;
     public bool IsPlacedOnGrid => isPlacedOnGrid;
     public bool IsPlayerCurrentRoom => isPlayerCurrentRoom;
     public bool HasValidPlacementPreview { get; private set; }
@@ -90,9 +89,6 @@ public class DollhouseRoom : MonoBehaviour
 
     private void Awake()
     {
-        startingParent = transform.parent;
-        startingLocalPosition = transform.localPosition;
-        startingLocalRotation = transform.localRotation;
         roomCollider = GetComponent<Collider>();
         roomRigidbody = GetComponent<Rigidbody>();
 
@@ -121,6 +117,8 @@ public class DollhouseRoom : MonoBehaviour
             if (grid != null)
                 grid.ClearRoom(this);
             isPlacedOnGrid = false;
+            if (worldRoom != null)
+                worldRoom.gameObject.SetActive(false);
             SetOffGridPhysics();
         }
         CheckDoorConnections();
@@ -195,6 +193,8 @@ public class DollhouseRoom : MonoBehaviour
         {
             DollhouseRoomSlot.ReleaseOccupiedSlot(this);
             DollhouseRoomSlot.SetHeldModule(this);
+            if (worldRoom != null)
+                worldRoom.gameObject.SetActive(false);
         }
 
         // Stoppt eine vorherige Fallbewegung, bevor XR die Kontrolle übernimmt.
@@ -260,16 +260,8 @@ public class DollhouseRoom : MonoBehaviour
 
     private void ReleaseToRequiredSlot()
     {
-        DollhouseRoomSlot slot = DollhouseRoomSlot.FindCompatibleSlot(this, transform.position);
+        DollhouseRoomSlot slot = DollhouseRoomSlot.FindCompatibleSlot(this, ModuleSnapAnchorPosition);
         if (slot != null && TryPlaceInSlot(slot, true))
-        {
-            DollhouseRoomSlot.ClearHeldModule(this);
-            return;
-        }
-
-        if (lastValidSlot != null &&
-            lastValidSlot.IsAvailableFor(this) &&
-            TryPlaceInSlot(lastValidSlot, false))
         {
             DollhouseRoomSlot.ClearHeldModule(this);
             return;
@@ -285,15 +277,10 @@ public class DollhouseRoom : MonoBehaviour
             DetachFromBoard();
         }
 
-        if (transform.parent != startingParent)
-            transform.SetParent(startingParent, false);
-        transform.localPosition = startingLocalPosition;
-        transform.localRotation = startingLocalRotation;
-        SetOffGridPhysics();
-
-        if (hideWorldRoomWhenOffGrid && worldRoom != null)
+        if (worldRoom != null)
             worldRoom.gameObject.SetActive(false);
 
+        SetOffGridPhysics();
         CheckDoorConnections();
         DollhouseRoomSlot.ClearHeldModule(this);
     }
@@ -302,18 +289,23 @@ public class DollhouseRoom : MonoBehaviour
     {
         if (slot == null ||
             grid == null ||
+            moduleSnapAnchor == null ||
             !slot.Matches(this) ||
             slot.Grid != grid ||
             !slot.IsAvailableFor(this) ||
-            (requireSnapDistance && !slot.IsWithinSnapRadius(transform.position)))
+            (requireSnapDistance && !slot.IsWithinSnapRadius(ModuleSnapAnchorPosition)))
         {
             return false;
         }
 
-        Quaternion targetRotation = slot.SnapTransform.rotation;
+        // Solve the technical root pose from the visible opening anchors.
+        Quaternion targetRotation = slot.SnapTransform.rotation *
+                                    Quaternion.Inverse(moduleSnapAnchor.localRotation);
+        Vector3 anchorOffset = Vector3.Scale(moduleSnapAnchor.localPosition, transform.localScale);
+        Vector3 targetRootPosition = slot.SnapTransform.position - targetRotation * anchorOffset;
         GetSnappedYRotation(targetRotation, out float yRotation);
         if (!grid.TryGetGridCoordinates(
-                slot.SnapTransform.position,
+                targetRootPosition,
                 width,
                 depth,
                 yRotation,
@@ -332,15 +324,14 @@ public class DollhouseRoom : MonoBehaviour
             return false;
         }
 
-        transform.SetPositionAndRotation(slot.SnapTransform.position, targetRotation);
+        transform.SetPositionAndRotation(targetRootPosition, targetRotation);
         grid.OccupyRoom(this, startX, startZ, yRotation);
         SetGridPhysics();
         isPlacedOnGrid = true;
 
-        // Slot bestimmt die Mini-Pose; Sockets werden danach an die Grid-Kanten gelegt.
+        // Sockets werden auf denselben sichtbaren Türanker gelegt.
         AlignDoorSocketsToGridEdges();
         AttachToBoard();
-        lastValidSlot = slot;
         HasValidPlacementPreview = false;
 
         CheckDoorConnections();
@@ -547,6 +538,18 @@ public class DollhouseRoom : MonoBehaviour
         if (grid == null || doorSockets == null)
             return;
 
+        if (moduleSnapAnchor != null)
+        {
+            foreach (DoorSocket socket in doorSockets)
+            {
+                if (socket != null)
+                    socket.transform.SetPositionAndRotation(
+                        moduleSnapAnchor.position,
+                        moduleSnapAnchor.rotation);
+            }
+            return;
+        }
+
         const float socketGridHeight = 0.02f;
         float halfWidth = width * grid.cellSize * 0.5f;
         float halfDepth = depth * grid.cellSize * 0.5f;
@@ -742,7 +745,9 @@ public class DollhouseRoom : MonoBehaviour
         worldRoom.position = worldPosition;
 
         GetSnappedYRotation(transform.rotation, out float yRotation);
-        float worldYaw = Mathf.Repeat(worldGridOrigin.eulerAngles.y + yRotation, 360f);
+        float worldYaw = Mathf.Repeat(
+            worldGridOrigin.eulerAngles.y + yRotation + worldYawOffsetDegrees,
+            360f);
         worldRoom.rotation = Quaternion.Euler(0f, worldYaw, 0f);
 
         ApplyWorldFloorHeight();
@@ -853,16 +858,27 @@ public class DollhouseRoom : MonoBehaviour
                 }
 
                 DollhouseRoom otherRoom = otherMiniSocket.GetComponentInParent<DollhouseRoom>();
-                if (otherRoom == null || otherRoom == this || !otherRoom.isPlacedOnGrid)
-                    continue;
-
-                if (!otherRoom.TryGetWorldDoorSocket(otherMiniSocket, out Transform mappedTargetWorldSocket))
+                Transform mappedTargetWorldSocket;
+                if (otherRoom != null && otherRoom != this && otherRoom.isPlacedOnGrid)
                 {
-                    targetMappingMissing = true;
-                    Debug.Log(
-                        $"[WorldDoorSync] miniRoom={name}, miniSocket={miniSocket.name}, targetMiniSocket={otherMiniSocket.name}, IsConnected={miniSocket.IsConnected}: Target world socket mapping missing.",
-                        this);
-                    continue;
+                    if (!otherRoom.TryGetWorldDoorSocket(otherMiniSocket, out mappedTargetWorldSocket))
+                    {
+                        targetMappingMissing = true;
+                        Debug.Log(
+                            $"[WorldDoorSync] miniRoom={name}, miniSocket={miniSocket.name}, targetMiniSocket={otherMiniSocket.name}, IsConnected={miniSocket.IsConnected}: Target world socket mapping missing.",
+                            this);
+                        continue;
+                    }
+                }
+                else
+                {
+                    DollhouseFixedSocketHost fixedHost =
+                        otherMiniSocket.GetComponentInParent<DollhouseFixedSocketHost>();
+                    if (otherRoom != null || fixedHost == null ||
+                        !fixedHost.TryGetWorldDoorSocket(otherMiniSocket, out mappedTargetWorldSocket))
+                    {
+                        continue;
+                    }
                 }
 
                 float miniDistance = Vector3.Distance(
@@ -946,8 +962,13 @@ public class DollhouseRoom : MonoBehaviour
                     }
 
                     DollhouseRoom otherRoom = otherSocket.GetComponentInParent<DollhouseRoom>();
-                    if (otherRoom == null || otherRoom == room || !otherRoom.isPlacedOnGrid)
+                    bool isFixedHallwaySocket =
+                        otherSocket.GetComponentInParent<DollhouseFixedSocketHost>() != null;
+                    if (otherRoom == null ? !isFixedHallwaySocket
+                        : otherRoom == room || !otherRoom.isPlacedOnGrid)
+                    {
                         continue;
+                    }
 
                     if (ownSocket.IsNearAndCompatible(otherSocket))
                     {
