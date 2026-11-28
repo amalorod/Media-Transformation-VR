@@ -602,14 +602,56 @@ public class DollhouseRoom : MonoBehaviour
             transform.SetParent(null, true);
     }
 
+    /// <summary>
+    /// Abstand zwischen Raum-Ursprung und tiefstem Collider-Punkt, gemessen entlang der
+    /// Board-Hochachse. Für Box- und Kugel-Collider wird der tiefste Punkt exakt berechnet.
+    ///
+    /// Die frühere Näherung über die Welt-AABB hat bei geneigtem Board spürbar zu hoch
+    /// platziert: die Welt-AABB eines um 30° gekippten Quaders ist deutlich größer als der
+    /// Quader selbst, wodurch der Raum sichtbar über dem Board schwebte.
+    /// </summary>
     private float GetRoomBottomOffset()
     {
-        Bounds bounds = roomCollider.bounds;
         Vector3 up = grid.transform.up;
+
+        if (roomCollider is BoxCollider boxCollider)
+        {
+            Vector3 center = boxCollider.transform.TransformPoint(boxCollider.center);
+            Vector3 axisX = boxCollider.transform.TransformVector(
+                new Vector3(boxCollider.size.x * 0.5f, 0f, 0f));
+            Vector3 axisY = boxCollider.transform.TransformVector(
+                new Vector3(0f, boxCollider.size.y * 0.5f, 0f));
+            Vector3 axisZ = boxCollider.transform.TransformVector(
+                new Vector3(0f, 0f, boxCollider.size.z * 0.5f));
+
+            float supportDistance =
+                Mathf.Abs(Vector3.Dot(axisX, up)) +
+                Mathf.Abs(Vector3.Dot(axisY, up)) +
+                Mathf.Abs(Vector3.Dot(axisZ, up));
+
+            float lowestProjection = Vector3.Dot(center, up) - supportDistance;
+            return Vector3.Dot(transform.position, up) - lowestProjection;
+        }
+
+        if (roomCollider is SphereCollider sphereCollider)
+        {
+            Vector3 center = sphereCollider.transform.TransformPoint(sphereCollider.center);
+            float radius = sphereCollider.radius * MaxAbsComponent(sphereCollider.transform.lossyScale);
+            float lowestProjection = Vector3.Dot(center, up) - radius;
+            return Vector3.Dot(transform.position, up) - lowestProjection;
+        }
+
+        // Fallback: bisheriges Verhalten über die Welt-AABB.
+        Bounds bounds = roomCollider.bounds;
         Vector3 absoluteUp = new Vector3(Mathf.Abs(up.x), Mathf.Abs(up.y), Mathf.Abs(up.z));
-        float supportDistance = Vector3.Dot(absoluteUp, bounds.extents);
-        float lowestProjection = Vector3.Dot(bounds.center, up) - supportDistance;
-        return Vector3.Dot(transform.position, up) - lowestProjection;
+        float aabbSupportDistance = Vector3.Dot(absoluteUp, bounds.extents);
+        float aabbLowestProjection = Vector3.Dot(bounds.center, up) - aabbSupportDistance;
+        return Vector3.Dot(transform.position, up) - aabbLowestProjection;
+    }
+
+    private static float MaxAbsComponent(Vector3 value)
+    {
+        return Mathf.Max(Mathf.Abs(value.x), Mathf.Max(Mathf.Abs(value.y), Mathf.Abs(value.z)));
     }
 
     private void SetGridPhysics()
